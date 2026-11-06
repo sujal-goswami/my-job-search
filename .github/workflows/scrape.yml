@@ -1,0 +1,160 @@
+name: Job Scrape
+
+on:
+  workflow_dispatch:       # manual: gh workflow run scrape.yml
+  schedule:
+    - cron: '0 3 * * *'   # daily 3:00am UTC = 8:30am IST
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install LinkedIn CLI deps
+        run: bun install --cwd .agents/skills/linkedin-search/cli
+
+      - name: Install freehire CLI deps
+        run: bun install --cwd .agents/skills/freehire-search/cli
+
+      # ── LinkedIn searches (run sequentially to avoid rate limits) ──────────
+
+      - name: LinkedIn — DevOps Kubernetes India
+        env:
+          LI_AT: ${{ secrets.LI_AT }}
+        run: |
+          bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
+            -q "DevOps Engineer Kubernetes" -l "India" --jobage 14 --limit 20 --format json \
+            > /tmp/li_1.json 2>/dev/null || echo "[]" > /tmp/li_1.json
+
+      - name: LinkedIn — AI Infrastructure Engineer India
+        env:
+          LI_AT: ${{ secrets.LI_AT }}
+        run: |
+          bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
+            -q "AI Infrastructure Engineer" -l "India" --jobage 14 --limit 20 --format json \
+            > /tmp/li_2.json 2>/dev/null || echo "[]" > /tmp/li_2.json
+
+      - name: LinkedIn — Platform Engineer AWS India
+        env:
+          LI_AT: ${{ secrets.LI_AT }}
+        run: |
+          bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
+            -q "Platform Engineer AWS" -l "India" --jobage 14 --limit 20 --format json \
+            > /tmp/li_3.json 2>/dev/null || echo "[]" > /tmp/li_3.json
+
+      - name: LinkedIn — MLOps LLM Platform India
+        env:
+          LI_AT: ${{ secrets.LI_AT }}
+        run: |
+          bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
+            -q "MLOps LLM Platform Engineer" -l "India" --jobage 14 --limit 20 --format json \
+            > /tmp/li_4.json 2>/dev/null || echo "[]" > /tmp/li_4.json
+
+      - name: LinkedIn — SRE Kubernetes India
+        env:
+          LI_AT: ${{ secrets.LI_AT }}
+        run: |
+          bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
+            -q "Site Reliability Engineer Kubernetes" -l "India" --jobage 14 --limit 20 --format json \
+            > /tmp/li_5.json 2>/dev/null || echo "[]" > /tmp/li_5.json
+
+      - name: LinkedIn — Remote AI DevOps
+        env:
+          LI_AT: ${{ secrets.LI_AT }}
+        run: |
+          bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
+            -q "AI Infrastructure DevOps" -l "Remote" --jobage 14 --limit 20 --format json \
+            > /tmp/li_6.json 2>/dev/null || echo "[]" > /tmp/li_6.json
+
+      # ── freehire searches ──────────────────────────────────────────────────
+
+      - name: freehire — DevOps Kubernetes
+        run: |
+          bun run .agents/skills/freehire-search/cli/src/cli.ts search \
+            -q "devops kubernetes" --jobage 14 --limit 25 --format json \
+            > /tmp/fh_1.json 2>/dev/null || echo "[]" > /tmp/fh_1.json
+
+      - name: freehire — AI Infrastructure LLM
+        run: |
+          bun run .agents/skills/freehire-search/cli/src/cli.ts search \
+            -q "ai infrastructure llm platform" --jobage 14 --limit 25 --format json \
+            > /tmp/fh_2.json 2>/dev/null || echo "[]" > /tmp/fh_2.json
+
+      - name: freehire — SRE Platform
+        run: |
+          bun run .agents/skills/freehire-search/cli/src/cli.ts search \
+            -q "site reliability engineer platform" --jobage 14 --limit 25 --format json \
+            > /tmp/fh_3.json 2>/dev/null || echo "[]" > /tmp/fh_3.json
+
+      # ── merge all results ──────────────────────────────────────────────────
+
+      - name: Merge and deduplicate results
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+
+          files = [
+            ("/tmp/li_1.json", "linkedin-search"),
+            ("/tmp/li_2.json", "linkedin-search"),
+            ("/tmp/li_3.json", "linkedin-search"),
+            ("/tmp/li_4.json", "linkedin-search"),
+            ("/tmp/li_5.json", "linkedin-search"),
+            ("/tmp/li_6.json", "linkedin-search"),
+            ("/tmp/fh_1.json", "freehire-search"),
+            ("/tmp/fh_2.json", "freehire-search"),
+            ("/tmp/fh_3.json", "freehire-search"),
+          ]
+
+          all_results = []
+          for path, portal in files:
+              try:
+                  with open(path) as f:
+                      data = json.load(f)
+                  items = data if isinstance(data, list) else data.get("results", [])
+                  for item in items:
+                      item["_portal"] = portal
+                  all_results.extend(items)
+              except Exception as e:
+                  print(f"Warning: {path}: {e}", file=sys.stderr)
+
+          seen_urls = set()
+          deduped = []
+          for item in all_results:
+              url = item.get("url") or item.get("jobUrl") or ""
+              if url and url not in seen_urls:
+                  seen_urls.add(url)
+                  deduped.append(item)
+
+          print(f"Total: {len(all_results)}, after dedup: {len(deduped)}")
+          with open("/tmp/scrape_results.json", "w") as out:
+              json.dump(deduped, out, indent=2)
+          EOF
+
+      - name: Upload scrape results artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrape-results
+          path: /tmp/scrape_results.json
+          retention-days: 7
+
+      - name: Job summary
+        run: |
+          COUNT=$(python3 -c "import json; print(len(json.load(open('/tmp/scrape_results.json'))))")
+          echo "## Scrape complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Jobs found | $COUNT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run at | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the **scrape-results** artifact and run:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "python3 tools/linkedin_sync.py" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
