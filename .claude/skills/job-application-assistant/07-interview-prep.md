@@ -14,28 +14,49 @@ Keep answers to 1-2 minutes. Be specific. End with what you learned or would do 
 
 ## Ready-Made STAR Examples
 
-<!-- These are populated by /setup from your actual experience. Below are templates showing the format. -->
+<!-- SETUP populates this section with STAR candidates drawn from your actual experience -->
 
-### 1. [PROJECT_NAME] ([SKILL_DEMONSTRATED])
-**S:** [CONTEXT - what was happening, what was the problem]
-**T:** [YOUR RESPONSIBILITY - what you specifically needed to do]
-**A:** [WHAT YOU DID - specific actions, tools, methods]
-**R:** [OUTCOME - measurable results, adoption, impact]
-**Use for:** "[QUESTION_TYPE_1]", "[QUESTION_TYPE_2]"
+## STAR Candidates (Complete Manually)
 
-### 2. [PROJECT_NAME] ([SKILL_DEMONSTRATED])
-**S:** [CONTEXT]
-**T:** [YOUR RESPONSIBILITY]
-**A:** [WHAT YOU DID]
-**R:** [OUTCOME]
-**Use for:** "[QUESTION_TYPE_1]", "[QUESTION_TYPE_2]"
+### Enterprise AI Governance & Control Platform (Technical Leadership + LLM Infrastructure)
+**Source:** DevOps Engineer role, Freecharge by Axis Bank (July 2025–Present)
+**What happened:** Led a 5-engineer team to design and deliver a production zero-trust LLM gateway using LiteLLM, OPA, and Langfuse — serving as the single control plane for all organisational LLM consumption across AWS Bedrock, OpenAI, and Azure, with RBAC, PII/DLP guardrails, and SOC2 compliance.
+**Why it matters:** Answers "tell me about leading a technical project", "how did you handle compliance requirements", "describe a time you built something from scratch with real constraints", "how do you balance security with usability"
+**S/T/A/R stub:**
+- Situation:
+- Task:
+- Action:
+- Result: 100% ISO/SOC2 compliance, zero data leakage, significantly optimised LLM spend
 
-### 3. [PROJECT_NAME] ([SKILL_DEMONSTRATED])
-**S:** [CONTEXT]
-**T:** [YOUR RESPONSIBILITY]
-**A:** [WHAT YOU DID]
-**R:** [OUTCOME]
-**Use for:** "[QUESTION_TYPE_1]", "[QUESTION_TYPE_2]"
+### AIOps Self-Healing Agent (Innovation + Cost Reduction)
+**Source:** DevOps Engineer role, Freecharge by Axis Bank (July 2025–Present)
+**What happened:** Built an AIOps agent on AWS Bedrock that predicts and self-heals infrastructure failures across 3+ EKS clusters before they cause downtime.
+**Why it matters:** Answers "give me an example of an innovative solution you built", "tell me about reducing operational costs", "how did you improve system reliability", "describe autonomous/AI-driven operations work"
+**S/T/A/R stub:**
+- Situation:
+- Task:
+- Action:
+- Result: 90% predictive failure accuracy, MTTR reduced 75%, $50K+ ops cost savings, 99.99% uptime
+
+### EKS Migration — 20+ Payment Microservices (Large-scale Migration + DevSecOps)
+**Source:** DevOps Engineer role, Freecharge by Axis Bank (July 2025–Present)
+**What happened:** Migrated 20+ payment microservices to EKS with zero downtime while serving 5M+ monthly transactions; implemented a Helm + DevSecOps pipeline as part of the migration.
+**Why it matters:** Answers "tell me about a challenging migration", "how did you improve deployment processes", "describe a time you delivered something with zero tolerance for failure", "how do you handle risk in production changes"
+**S/T/A/R stub:**
+- Situation:
+- Task:
+- Action:
+- Result: Zero downtime, 60% faster deployments, 95% reduction in manual AppSec assessment time
+
+### Enterprise RAG System (End-to-end Build + Intern Initiative)
+**Source:** DevOps Engineering Intern role, Freecharge by Axis Bank (Jan 2025–June 2025)
+**What happened:** As an intern, architected an end-to-end RAG system (AWS Bedrock + OpenAI APIs) with an automated Confluence ingestion pipeline — replacing manual documentation search for the whole organisation.
+**Why it matters:** Answers "tell me about a project you built from scratch", "give an example of taking initiative beyond your role", "describe AI/RAG/LLM work you've shipped to production"
+**S/T/A/R stub:**
+- Situation:
+- Task:
+- Action:
+- Result: 80% reduction in internal information retrieval time, organisation-wide productivity improvement
 
 <!-- Add more STAR examples as needed. Aim for 4-6 covering different competencies. -->
 
