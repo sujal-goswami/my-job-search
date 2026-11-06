@@ -1,14 +1,14 @@
-name: Job Scrape
+name: Weekly Job Digest
 
 on:
-  workflow_dispatch:       # manual: gh workflow run scrape.yml
+  workflow_dispatch:        # manual: gh workflow run scrape.yml
   schedule:
-    - cron: '0 3 * * *'   # daily 3:00am UTC = 8:30am IST
+    - cron: '30 3 * * 0'   # Sunday 9:00am IST (03:30 UTC)
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -17,20 +17,28 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        run: pip install openpyxl requests
+
       - name: Install LinkedIn CLI deps
         run: bun install --cwd .agents/skills/linkedin-search/cli
 
       - name: Install freehire CLI deps
         run: bun install --cwd .agents/skills/freehire-search/cli
 
-      # ── LinkedIn searches (run sequentially to avoid rate limits) ──────────
+      # ── LinkedIn searches ────────────────────────────────────────────────────
 
       - name: LinkedIn — DevOps Kubernetes India
         env:
           LI_AT: ${{ secrets.LI_AT }}
         run: |
           bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
-            -q "DevOps Engineer Kubernetes" -l "India" --jobage 14 --limit 20 --format json \
+            -q "DevOps Engineer Kubernetes" -l "India" --jobage 7 --limit 25 --format json \
             > /tmp/li_1.json 2>/dev/null || echo "[]" > /tmp/li_1.json
 
       - name: LinkedIn — AI Infrastructure Engineer India
@@ -38,7 +46,7 @@ jobs:
           LI_AT: ${{ secrets.LI_AT }}
         run: |
           bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
-            -q "AI Infrastructure Engineer" -l "India" --jobage 14 --limit 20 --format json \
+            -q "AI Infrastructure Engineer" -l "India" --jobage 7 --limit 25 --format json \
             > /tmp/li_2.json 2>/dev/null || echo "[]" > /tmp/li_2.json
 
       - name: LinkedIn — Platform Engineer AWS India
@@ -46,7 +54,7 @@ jobs:
           LI_AT: ${{ secrets.LI_AT }}
         run: |
           bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
-            -q "Platform Engineer AWS" -l "India" --jobage 14 --limit 20 --format json \
+            -q "Platform Engineer AWS" -l "India" --jobage 7 --limit 25 --format json \
             > /tmp/li_3.json 2>/dev/null || echo "[]" > /tmp/li_3.json
 
       - name: LinkedIn — MLOps LLM Platform India
@@ -54,7 +62,7 @@ jobs:
           LI_AT: ${{ secrets.LI_AT }}
         run: |
           bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
-            -q "MLOps LLM Platform Engineer" -l "India" --jobage 14 --limit 20 --format json \
+            -q "MLOps LLM Platform Engineer" -l "India" --jobage 7 --limit 25 --format json \
             > /tmp/li_4.json 2>/dev/null || echo "[]" > /tmp/li_4.json
 
       - name: LinkedIn — SRE Kubernetes India
@@ -62,7 +70,7 @@ jobs:
           LI_AT: ${{ secrets.LI_AT }}
         run: |
           bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
-            -q "Site Reliability Engineer Kubernetes" -l "India" --jobage 14 --limit 20 --format json \
+            -q "Site Reliability Engineer Kubernetes" -l "India" --jobage 7 --limit 25 --format json \
             > /tmp/li_5.json 2>/dev/null || echo "[]" > /tmp/li_5.json
 
       - name: LinkedIn — Remote AI DevOps
@@ -70,30 +78,164 @@ jobs:
           LI_AT: ${{ secrets.LI_AT }}
         run: |
           bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
-            -q "AI Infrastructure DevOps" -l "Remote" --jobage 14 --limit 20 --format json \
+            -q "AI Infrastructure DevOps remote" -l "" --jobage 7 --limit 20 --format json \
             > /tmp/li_6.json 2>/dev/null || echo "[]" > /tmp/li_6.json
 
-      # ── freehire searches ──────────────────────────────────────────────────
+      - name: LinkedIn — DevSecOps India
+        env:
+          LI_AT: ${{ secrets.LI_AT }}
+        run: |
+          bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
+            -q "DevSecOps Engineer India" -l "India" --jobage 7 --limit 20 --format json \
+            > /tmp/li_7.json 2>/dev/null || echo "[]" > /tmp/li_7.json
+
+      - name: LinkedIn — Cloud Engineer Terraform India
+        env:
+          LI_AT: ${{ secrets.LI_AT }}
+        run: |
+          bun run .agents/skills/linkedin-search/cli/src/cli.ts search \
+            -q "Cloud Engineer Terraform AWS" -l "India" --jobage 7 --limit 20 --format json \
+            > /tmp/li_8.json 2>/dev/null || echo "[]" > /tmp/li_8.json
+
+      # ── freehire searches ────────────────────────────────────────────────────
 
       - name: freehire — DevOps Kubernetes
         run: |
           bun run .agents/skills/freehire-search/cli/src/cli.ts search \
-            -q "devops kubernetes" --jobage 14 --limit 25 --format json \
+            -q "devops kubernetes" --jobage 7 --limit 25 --format json \
             > /tmp/fh_1.json 2>/dev/null || echo "[]" > /tmp/fh_1.json
 
       - name: freehire — AI Infrastructure LLM
         run: |
           bun run .agents/skills/freehire-search/cli/src/cli.ts search \
-            -q "ai infrastructure llm platform" --jobage 14 --limit 25 --format json \
+            -q "ai infrastructure llm platform" --jobage 7 --limit 25 --format json \
             > /tmp/fh_2.json 2>/dev/null || echo "[]" > /tmp/fh_2.json
 
       - name: freehire — SRE Platform
         run: |
           bun run .agents/skills/freehire-search/cli/src/cli.ts search \
-            -q "site reliability engineer platform" --jobage 14 --limit 25 --format json \
+            -q "site reliability engineer platform" --jobage 7 --limit 25 --format json \
             > /tmp/fh_3.json 2>/dev/null || echo "[]" > /tmp/fh_3.json
 
-      # ── merge all results ──────────────────────────────────────────────────
+      - name: freehire — MLOps Cloud Native
+        run: |
+          bun run .agents/skills/freehire-search/cli/src/cli.ts search \
+            -q "mlops cloud native engineer" --jobage 7 --limit 20 --format json \
+            > /tmp/fh_4.json 2>/dev/null || echo "[]" > /tmp/fh_4.json
+
+      # ── Target company career page scraping (via Python + requests) ──────────
+
+      - name: Scrape target company career pages
+        run: |
+          python3 - <<'PYEOF'
+          import json, re, time
+          import urllib.request, urllib.error
+          from html.parser import HTMLParser
+
+          COMPANIES = [
+              # (company_name, careers_url, search_terms)
+              ("Zerodha",        "https://zerodha.com/careers/",                            ["devops","platform","infrastructure","kubernetes","sre"]),
+              ("Harness",        "https://www.harness.io/company/careers",                  ["devops","platform","sre","infrastructure","kubernetes"]),
+              ("Devtron",        "https://devtron.ai/careers/",                              ["devops","platform","kubernetes","infrastructure"]),
+              ("Sarvam AI",      "https://www.sarvam.ai/careers",                           ["devops","mlops","platform","ai","infrastructure"]),
+              ("Razorpay",       "https://razorpay.com/jobs/",                              ["devops","platform","sre","infrastructure","kubernetes"]),
+              ("CRED",           "https://cred.club/careers/",                              ["devops","platform","infrastructure","sre"]),
+              ("PhonePe",        "https://www.phonepe.com/en-in/careers/",                  ["devops","platform","sre","infrastructure"]),
+              ("Groww",          "https://careers.groww.in/",                               ["devops","platform","sre","infrastructure"]),
+              ("Paytm",          "https://careers.paytm.com/",                              ["devops","platform","infrastructure","sre"]),
+              ("InfraCloud",     "https://www.infracloud.io/careers/",                      ["kubernetes","devops","platform","cloud"]),
+              ("Delhivery",      "https://www.delhivery.com/careers/",                      ["devops","platform","sre","infrastructure"]),
+              ("Cashfree",       "https://www.cashfree.com/company/careers/",               ["devops","platform","infrastructure","engineer"]),
+              ("Juspay",         "https://juspay.in/careers",                               ["devops","platform","infrastructure","sre"]),
+              ("BrowserStack",   "https://www.browserstack.com/careers",                    ["devops","platform","infrastructure","sre"]),
+              ("Sprinklr",       "https://www.sprinklr.com/careers/",                       ["devops","platform","infrastructure","cloud"]),
+              ("Freshworks",     "https://www.freshworks.com/company/careers/",             ["devops","sre","platform","infrastructure"]),
+              ("Meesho",         "https://meesho.io/careers",                               ["devops","sre","platform","infrastructure"]),
+              ("Postman",        "https://www.postman.com/company/careers/",                ["devops","sre","platform","infrastructure"]),
+              ("Datadog",        "https://careers.datadoghq.com/",                          ["devops","sre","platform","infrastructure","india"]),
+              ("Anthropic",      "https://www.anthropic.com/careers",                       ["devops","platform","infrastructure","ml","ai"]),
+              ("Cohere",         "https://cohere.com/careers",                              ["devops","mlops","platform","infrastructure","ai"]),
+              ("Swiggy",         "https://careers.swiggy.com/",                             ["devops","platform","sre","infrastructure"]),
+              ("Cars24",         "https://www.cars24.com/careers/",                         ["devops","platform","infrastructure","engineer"]),
+              ("OfBusiness",     "https://www.ofbusiness.in/careers",                       ["devops","platform","infrastructure","engineer"]),
+          ]
+
+          HEADERS = {
+              "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              "Accept-Language": "en-US,en;q=0.9",
+          }
+
+          class JobLinkExtractor(HTMLParser):
+              def __init__(self, base_url, terms):
+                  super().__init__()
+                  self.base_url = base_url
+                  self.terms = terms
+                  self.jobs = []
+                  self._current_href = None
+                  self._current_text = []
+                  self._in_a = False
+
+              def handle_starttag(self, tag, attrs):
+                  if tag == "a":
+                      href = dict(attrs).get("href", "")
+                      self._current_href = href
+                      self._current_text = []
+                      self._in_a = True
+
+              def handle_endtag(self, tag):
+                  if tag == "a" and self._in_a:
+                      text = " ".join(self._current_text).strip()
+                      href = self._current_href or ""
+                      if text and href and any(t in text.lower() for t in self.terms):
+                          if not href.startswith("http"):
+                              from urllib.parse import urljoin
+                              href = urljoin(self.base_url, href)
+                          if len(text) > 8 and len(text) < 120:
+                              self.jobs.append({"title": text, "url": href})
+                      self._in_a = False
+                      self._current_href = None
+                      self._current_text = []
+
+              def handle_data(self, data):
+                  if self._in_a:
+                      self._current_text.append(data.strip())
+
+          all_company_jobs = []
+
+          for company, url, terms in COMPANIES:
+              try:
+                  req = urllib.request.Request(url, headers=HEADERS)
+                  with urllib.request.urlopen(req, timeout=15) as resp:
+                      html = resp.read().decode("utf-8", errors="replace")
+
+                  parser = JobLinkExtractor(url, terms)
+                  parser.feed(html)
+
+                  seen_urls = set()
+                  for job in parser.jobs[:10]:  # max 10 per company
+                      if job["url"] not in seen_urls:
+                          seen_urls.add(job["url"])
+                          all_company_jobs.append({
+                              "title": job["title"],
+                              "company": company,
+                              "location": "India",
+                              "url": job["url"],
+                              "date": "",
+                              "_portal": "company-careers",
+                          })
+                  print(f"  {company}: {len(seen_urls)} jobs found")
+                  time.sleep(0.5)
+
+              except Exception as e:
+                  print(f"  {company}: skipped ({e})")
+
+          print(f"\nTotal company career jobs: {len(all_company_jobs)}")
+          with open("/tmp/company_careers.json", "w") as f:
+              json.dump(all_company_jobs, f, indent=2)
+          PYEOF
+
+      # ── merge all results ──────────────────────────────────────────────────────
 
       - name: Merge and deduplicate results
         run: |
@@ -101,15 +243,19 @@ jobs:
           import json, sys
 
           files = [
-            ("/tmp/li_1.json", "linkedin-search"),
-            ("/tmp/li_2.json", "linkedin-search"),
-            ("/tmp/li_3.json", "linkedin-search"),
-            ("/tmp/li_4.json", "linkedin-search"),
-            ("/tmp/li_5.json", "linkedin-search"),
-            ("/tmp/li_6.json", "linkedin-search"),
-            ("/tmp/fh_1.json", "freehire-search"),
-            ("/tmp/fh_2.json", "freehire-search"),
-            ("/tmp/fh_3.json", "freehire-search"),
+              ("/tmp/li_1.json", "linkedin-search"),
+              ("/tmp/li_2.json", "linkedin-search"),
+              ("/tmp/li_3.json", "linkedin-search"),
+              ("/tmp/li_4.json", "linkedin-search"),
+              ("/tmp/li_5.json", "linkedin-search"),
+              ("/tmp/li_6.json", "linkedin-search"),
+              ("/tmp/li_7.json", "linkedin-search"),
+              ("/tmp/li_8.json", "linkedin-search"),
+              ("/tmp/fh_1.json", "freehire-search"),
+              ("/tmp/fh_2.json", "freehire-search"),
+              ("/tmp/fh_3.json", "freehire-search"),
+              ("/tmp/fh_4.json", "freehire-search"),
+              ("/tmp/company_careers.json", "company-careers"),
           ]
 
           all_results = []
@@ -119,18 +265,29 @@ jobs:
                       data = json.load(f)
                   items = data if isinstance(data, list) else data.get("results", [])
                   for item in items:
-                      item["_portal"] = portal
+                      if not item.get("_portal"):
+                          item["_portal"] = portal
                   all_results.extend(items)
               except Exception as e:
                   print(f"Warning: {path}: {e}", file=sys.stderr)
 
-          seen_urls = set()
+          # Deduplicate by URL, then by (company, title) as fallback
+          seen_urls, seen_combos = set(), set()
           deduped = []
           for item in all_results:
-              url = item.get("url") or item.get("jobUrl") or ""
-              if url and url not in seen_urls:
-                  seen_urls.add(url)
-                  deduped.append(item)
+              url = (item.get("url") or item.get("jobUrl") or "").strip()
+              company = (item.get("company") or "").strip().lower()
+              title = (item.get("title") or "").strip().lower()
+              if not url or not title or not company:
+                  continue
+              combo = f"{company}||{title}"
+              if url in seen_urls:
+                  continue
+              if combo in seen_combos:
+                  continue
+              seen_urls.add(url)
+              seen_combos.add(combo)
+              deduped.append(item)
 
           print(f"Total: {len(all_results)}, after dedup: {len(deduped)}")
           with open("/tmp/scrape_results.json", "w") as out:
@@ -142,19 +299,255 @@ jobs:
         with:
           name: scrape-results
           path: /tmp/scrape_results.json
-          retention-days: 7
+          retention-days: 14
+
+      # ── build Excel + send digest email ──────────────────────────────────────
+
+      - name: Build digest and send email
+        env:
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          DIGEST_EMAIL_FROM:   ${{ secrets.DIGEST_EMAIL_FROM }}
+          DIGEST_EMAIL_TO:     ${{ secrets.DIGEST_EMAIL_TO }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, io, os, smtplib, sys
+          from datetime import date
+          from email import encoders
+          from email.mime.base import MIMEBase
+          from email.mime.multipart import MIMEMultipart
+          from email.mime.text import MIMEText
+
+          # ── config ────────────────────────────────────────────────────────────
+          FROM_ADDR = os.environ.get("DIGEST_EMAIL_FROM", "")
+          TO_ADDR   = os.environ.get("DIGEST_EMAIL_TO", FROM_ADDR)
+          APP_PW    = os.environ.get("GMAIL_APP_PASSWORD", "")
+
+          if not FROM_ADDR or not APP_PW:
+              print("DIGEST_EMAIL_FROM or GMAIL_APP_PASSWORD not set — skipping email")
+              sys.exit(0)
+
+          # ── load jobs ─────────────────────────────────────────────────────────
+          with open("/tmp/scrape_results.json") as f:
+              raw = json.load(f)
+
+          DREAM = {"zerodha","harness","devtron","sarvam","krutrim","razorpay",
+                   "datadog","grafana","anthropic","cred","phonepe","wise",
+                   "groww","paytm","setu","m2p","infracloud","delhivery",
+                   "postman","meesho","cashfree","cohere","weights & biases",
+                   "wandb","hugging face","google","amazon","aws","microsoft",
+                   "atlassian","stripe","together","modal","replicate"}
+
+          CATS = [
+              ("AI / LLM Infrastructure",   ["ai infrastructure","ml platform","mlops","llm","genai","ai platform","agentic","machine learning infra"]),
+              ("DevOps / Platform",          ["devops","platform engineer","cloud engineer","cloud platform","infrastructure engineer"]),
+              ("SRE / Reliability",          ["sre","site reliability","reliability engineer"]),
+              ("Other",                      []),
+          ]
+
+          def categorize(title):
+              t = title.lower()
+              for cat, kws in CATS[:-1]:
+                  if any(k in t for k in kws):
+                      return cat
+              return "Other"
+
+          def is_dream(company):
+              c = company.lower()
+              return any(d in c for d in DREAM)
+
+          jobs = []
+          seen_urls = set()
+          for item in raw:
+              company = (item.get("company") or "").strip()
+              title   = (item.get("title")   or "").strip()
+              url     = item.get("url") or item.get("jobUrl") or ""
+              if not company or not title or not url or url in seen_urls:
+                  continue
+              seen_urls.add(url)
+              jobs.append({
+                  "title":    title,
+                  "company":  company,
+                  "location": item.get("location") or "India",
+                  "url":      url,
+                  "date":     item.get("date") or item.get("postedAt") or "",
+                  "portal":   item.get("_portal") or "",
+                  "skills":   item.get("skills") or [],
+                  "category": categorize(title),
+                  "dream":    is_dream(company),
+              })
+
+          today = date.today().strftime("%Y-%m-%d")
+          dream_count = sum(1 for j in jobs if j["dream"])
+
+          # ── build Excel ───────────────────────────────────────────────────────
+          xlsx_bytes = None
+          try:
+              import openpyxl
+              from openpyxl.styles import Font, PatternFill, Alignment
+              from openpyxl.utils import get_column_letter
+
+              wb = openpyxl.Workbook()
+              ws = wb.active
+              ws.title = "All Jobs"
+              headers = ["#","Category","Company","Role","Location","Posted","Portal","Apply URL","Skills"]
+              hfill  = PatternFill("solid", fgColor="1e293b")
+              dfill  = PatternFill("solid", fgColor="FEF3C7")
+              afill  = PatternFill("solid", fgColor="F8FAFC")
+              hfont  = Font(bold=True, color="FFFFFF", size=11)
+              dfont  = Font(bold=True, color="92400E")
+              lfont  = Font(color="4F46E5", underline="single")
+              for col, h in enumerate(headers, 1):
+                  c = ws.cell(row=1, column=col, value=h)
+                  c.font = hfill and hfont
+                  c.fill = hfill
+                  c.alignment = Alignment(horizontal="center")
+              ws.row_dimensions[1].height = 24
+              widths = [4,22,22,44,20,12,16,16,50]
+              for i,w in enumerate(widths,1):
+                  ws.column_dimensions[get_column_letter(i)].width = w
+
+              sorted_jobs = sorted(jobs, key=lambda j:(0 if j["dream"] else 1, j["category"], j["company"]))
+              for i, job in enumerate(sorted_jobs, 1):
+                  row = i + 1
+                  fill = dfill if job["dream"] else (afill if i%2==0 else None)
+                  vals = [i, job["category"], job["company"], job["title"],
+                          job["location"], job["date"], job["portal"], "Apply →",
+                          ", ".join(job["skills"][:6]) if job["skills"] else ""]
+                  for col, val in enumerate(vals, 1):
+                      c = ws.cell(row=row, column=col, value=val)
+                      c.alignment = Alignment(vertical="center")
+                      if fill: c.fill = fill
+                      if col == 8 and job["url"]:
+                          c.hyperlink = job["url"]
+                          c.font = lfont
+                      elif job["dream"] and col in (2,3,4):
+                          c.font = dfont
+                  ws.row_dimensions[row].height = 17
+
+              ws.freeze_panes = "A2"
+
+              # Dream sheet
+              ws2 = wb.create_sheet("Dream Companies ⭐")
+              dream_jobs = [j for j in sorted_jobs if j["dream"]]
+              for col, h in enumerate(headers, 1):
+                  c = ws2.cell(row=1, column=col, value=h)
+                  c.font = hfont; c.fill = hfill
+                  c.alignment = Alignment(horizontal="center")
+              for i,w in enumerate(widths,1):
+                  ws2.column_dimensions[get_column_letter(i)].width = w
+              for i, job in enumerate(dream_jobs, 1):
+                  row = i+1
+                  vals = [i, job["category"], job["company"], job["title"],
+                          job["location"], job["date"], job["portal"], "Apply →",
+                          ", ".join(job["skills"][:6]) if job["skills"] else ""]
+                  for col, val in enumerate(vals, 1):
+                      c = ws2.cell(row=row, column=col, value=val)
+                      c.fill = dfill
+                      c.alignment = Alignment(vertical="center")
+                      if col==8 and job["url"]:
+                          c.hyperlink = job["url"]; c.font = lfont
+                      elif col in (2,3,4):
+                          c.font = dfont
+              ws2.freeze_panes = "A2"
+
+              buf = io.BytesIO()
+              wb.save(buf)
+              xlsx_bytes = buf.getvalue()
+              print(f"Excel built: {len(xlsx_bytes)//1024}KB, {len(sorted_jobs)} jobs, {len(dream_jobs)} dream")
+          except Exception as e:
+              print(f"Excel skipped: {e}")
+
+          # ── build HTML ────────────────────────────────────────────────────────
+          C_DARK="#1e293b"; C_ACC="#6366f1"; C_BG="#f8fafc"; C_CARD="#fff"
+          C_BORDER="#e2e8f0"; C_MUTED="#64748b"; C_DREAM="#f59e0b"; C_TEXT="#1e293b"
+
+          by_cat = {}
+          for j in jobs:
+              by_cat.setdefault(j["category"], []).append(j)
+
+          def job_row(j):
+              dream_b = '<span style="background:#f59e0b;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-right:6px">⭐ DREAM</span>' if j["dream"] else ""
+              skills_html = ""
+              if j["skills"]:
+                  tags = "".join(f'<span style="background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:3px;font-size:10px;margin:1px">{s}</span>' for s in j["skills"][:5])
+                  skills_html = f'<div style="margin-top:4px">{tags}</div>'
+              bc = C_DREAM if j["dream"] else C_BORDER
+              return f"""
+          <tr><td style="padding:0 0 8px 0">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:{C_CARD};border:1px solid {C_BORDER};border-left:4px solid {bc};border-radius:5px">
+          <tr><td style="padding:12px 16px">
+            <div>{dream_b}<strong style="font-size:14px;color:{C_TEXT}">{j['title']}</strong><span style="color:{C_MUTED};font-size:13px"> · {j['company']}</span>
+            <a href="{j['url']}" style="float:right;display:inline-block;padding:4px 14px;background:{C_ACC};color:#fff;text-decoration:none;border-radius:4px;font-size:12px;font-weight:600">Apply →</a></div>
+            <div style="margin-top:3px;color:{C_MUTED};font-size:12px">{j['location']} &nbsp;·&nbsp; {j['date']} &nbsp;·&nbsp; {j['portal']}</div>
+            {skills_html}
+          </td></tr></table>
+          </td></tr>"""
+
+          sections_html = ""
+          for cat, _ in CATS:
+              cat_jobs = sorted(by_cat.get(cat, []), key=lambda j:(0 if j["dream"] else 1, j["company"]))
+              if not cat_jobs: continue
+              rows = "".join(job_row(j) for j in cat_jobs)
+              sections_html += f"""
+          <tr><td style="background:{C_CARD};padding:0 28px">
+            <h2 style="margin:20px 0 10px;font-size:13px;font-weight:700;color:{C_DARK};text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid {C_BORDER};padding-bottom:6px">{cat} ({len(cat_jobs)})</h2>
+            <table width="100%" cellpadding="0" cellspacing="0">{rows}</table>
+          </td></tr>"""
+
+          sources = sorted(set(j["portal"] for j in jobs))
+          html = f"""<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+          <body style="margin:0;padding:0;background:{C_BG};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+          <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 12px">
+          <table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%">
+          <tr><td style="background:{C_DARK};border-radius:8px 8px 0 0;padding:24px 28px">
+            <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700">Weekly Job Digest</h1>
+            <p style="margin:6px 0 0;color:#94a3b8;font-size:13px">{today} &nbsp;·&nbsp; <strong style="color:#fff">{len(jobs)} new openings</strong> &nbsp;·&nbsp; {dream_count} dream companies &nbsp;·&nbsp; Excel attached</p>
+          </td></tr>
+          <tr><td style="background:#eff6ff;padding:10px 28px;border-left:4px solid {C_ACC}">
+            <p style="margin:0;color:#1e40af;font-size:13px">Open your laptop &rarr; run <code>/rank</code> on the best ones &rarr; <code>/apply</code> &rarr; submit</p>
+          </td></tr>
+          {sections_html}
+          <tr><td style="background:{C_DARK};border-radius:0 0 8px 8px;padding:16px 28px">
+            <p style="margin:0;color:#64748b;font-size:11px">Sources: {', '.join(sources)}<br>Weekly digest · {today}</p>
+          </td></tr>
+          </table></td></tr></table></body></html>"""
+
+          # ── send ──────────────────────────────────────────────────────────────
+          msg = MIMEMultipart("mixed")
+          msg["Subject"] = f"Weekly Job Digest — {today} ({len(jobs)} openings, {dream_count} dream)"
+          msg["From"] = FROM_ADDR
+          msg["To"] = TO_ADDR
+
+          alt = MIMEMultipart("alternative")
+          alt.attach(MIMEText(html, "html"))
+          msg.attach(alt)
+
+          if xlsx_bytes:
+              part = MIMEBase("application","vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+              part.set_payload(xlsx_bytes)
+              encoders.encode_base64(part)
+              part.add_header("Content-Disposition", f'attachment; filename="job_digest_{today}.xlsx"')
+              msg.attach(part)
+
+          print(f"Sending digest to {TO_ADDR}...")
+          with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+              smtp.ehlo(); smtp.starttls(); smtp.ehlo()
+              smtp.login(FROM_ADDR, APP_PW)
+              smtp.sendmail(FROM_ADDR, TO_ADDR, msg.as_string())
+          print(f"Done. {len(jobs)} jobs, Excel {'attached' if xlsx_bytes else 'skipped'}.")
+          PYEOF
 
       - name: Job summary
         run: |
           COUNT=$(python3 -c "import json; print(len(json.load(open('/tmp/scrape_results.json'))))")
-          echo "## Scrape complete" >> $GITHUB_STEP_SUMMARY
+          echo "## Weekly Digest Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Jobs found | $COUNT |" >> $GITHUB_STEP_SUMMARY
           echo "| Run at | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Download the **scrape-results** artifact and run:" >> $GITHUB_STEP_SUMMARY
+          echo "Digest email sent. Download **scrape-results** artifact and run:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "python3 tools/linkedin_sync.py" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
