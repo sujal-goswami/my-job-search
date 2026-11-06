@@ -21,6 +21,26 @@ REPO_ROOT = Path(__file__).parent.parent
 ARTIFACT_NAME = "scrape-results"
 WORKFLOW_FILE = "scrape.yml"
 
+# Auto-detect the GitHub repo from git remote, fallback to env var
+def _detect_gh_repo():
+    env_repo = os.environ.get("GH_REPO", "")
+    if env_repo:
+        return env_repo
+    result = subprocess.run(
+        "git remote get-url origin", shell=True, capture_output=True, text=True,
+        cwd=REPO_ROOT
+    )
+    url = result.stdout.strip()
+    # https://github.com/owner/repo.git  or  git@github.com:owner/repo.git
+    if "github.com" in url:
+        url = url.replace("git@github.com:", "https://github.com/")
+        url = url.removesuffix(".git")
+        return "/".join(url.split("/")[-2:])
+    return ""
+
+GH_REPO = _detect_gh_repo()
+GH_REPO_FLAG = f"--repo {GH_REPO}" if GH_REPO else ""
+
 
 def run(cmd, check=True, capture=True):
     result = subprocess.run(
@@ -35,7 +55,7 @@ def run(cmd, check=True, capture=True):
 
 def get_latest_run_id():
     result = run(
-        f'gh run list --workflow={WORKFLOW_FILE} --limit=5 --json databaseId,status,conclusion,createdAt'
+        f'gh run list {GH_REPO_FLAG} --workflow={WORKFLOW_FILE} --limit=5 --json databaseId,status,conclusion,createdAt'
     )
     runs = json.loads(result.stdout)
     completed = [r for r in runs if r["status"] == "completed" and r["conclusion"] == "success"]
@@ -47,7 +67,7 @@ def get_latest_run_id():
 
 def download_artifact(run_id, dest_dir):
     print(f"Downloading artifact from run {run_id}...")
-    run(f'gh run download {run_id} --name {ARTIFACT_NAME} --dir "{dest_dir}"')
+    run(f'gh run download {run_id} {GH_REPO_FLAG} --name {ARTIFACT_NAME} --dir "{dest_dir}"')
     artifact_path = Path(dest_dir) / "scrape_results.json"
     if not artifact_path.exists():
         print(f"Artifact not found at {artifact_path}")
@@ -56,41 +76,39 @@ def download_artifact(run_id, dest_dir):
 
 
 def normalize_results(raw_results):
-    """Normalize LinkedIn and freehire results into scrape_state.py store format."""
+    """Normalize LinkedIn and freehire results into the full schema scrape_state.py store expects."""
+    from datetime import date as _date
+    today = _date.today().isoformat()
+
     normalized = []
     for item in raw_results:
         portal = item.get("_portal", "linkedin-search")
 
-        if portal == "linkedin-search":
-            url = item.get("url") or item.get("jobUrl") or ""
-            if not url:
-                continue
-            normalized.append({
-                "title": item.get("title", ""),
-                "company": item.get("company", ""),
-                "location": item.get("location", ""),
-                "url": url,
-                "date": item.get("postedAt") or item.get("date") or None,
-                "portal": "linkedin-search",
-                "source": "cli",
-                "work_mode": item.get("workplaceType") or None,
-                "skills": [],
-            })
-        else:  # freehire-search
-            url = item.get("url") or ""
-            if not url:
-                continue
-            normalized.append({
-                "title": item.get("title", ""),
-                "company": item.get("company", ""),
-                "location": item.get("location", ""),
-                "url": url,
-                "date": item.get("date") or None,
-                "portal": "freehire-search",
-                "source": "cli",
-                "work_mode": item.get("work_mode") or None,
-                "skills": item.get("skills") or [],
-            })
+        url = item.get("url") or item.get("jobUrl") or ""
+        if not url:
+            continue
+        title = (item.get("title") or "").strip()
+        company = (item.get("company") or "").strip()
+        if not title or not company:
+            continue
+
+        posted_date = item.get("date") or item.get("postedAt") or None
+
+        normalized.append({
+            "title": title,
+            "company": company,
+            "location": item.get("location") or "",
+            "url": url,
+            "posted_date": posted_date,
+            "first_seen": today,
+            "deadline": None,
+            "fit": "medium",        # /rank will score properly
+            "status": "new",
+            "portal": portal,
+            "source": "cli",
+            "work_mode": item.get("workplaceType") or item.get("work_mode") or None,
+            "skills": item.get("skills") or [],
+        })
 
     return normalized
 
