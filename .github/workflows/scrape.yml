@@ -31,7 +31,7 @@ jobs:
       - name: Install freehire CLI deps
         run: bun install --cwd .agents/skills/freehire-search/cli
 
-      # ── LinkedIn searches ──────────────────────────────────────────────────
+      # -- LinkedIn searches --
 
       - name: LinkedIn - DevOps Kubernetes India
         env:
@@ -73,7 +73,7 @@ jobs:
           LI_AT: ${{ secrets.LI_AT }}
         run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "Cloud Engineer Terraform AWS" -l "India" --jobage 7 --limit 20 --format json > /tmp/li_8.json 2>/dev/null || echo "[]" > /tmp/li_8.json
 
-      # ── freehire searches ──────────────────────────────────────────────────
+      # -- freehire searches --
 
       - name: freehire - DevOps Kubernetes
         run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "devops kubernetes" --jobage 7 --limit 25 --format json > /tmp/fh_1.json 2>/dev/null || echo "[]" > /tmp/fh_1.json
@@ -87,12 +87,12 @@ jobs:
       - name: freehire - MLOps Cloud Native
         run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "mlops cloud native engineer" --jobage 7 --limit 20 --format json > /tmp/fh_4.json 2>/dev/null || echo "[]" > /tmp/fh_4.json
 
-      # ── target company career page scraping ───────────────────────────────
+      # -- target company career page scraping --
 
       - name: Scrape target company career pages
         run: python3 tools/scrape_companies.py > /tmp/company_careers.json
 
-      # ── merge all results ──────────────────────────────────────────────────
+      # -- merge all results --
 
       - name: Merge and deduplicate
         run: |
@@ -119,7 +119,7 @@ jobs:
           path: /tmp/scrape_results.json
           retention-days: 14
 
-      # ── build digest and send email ────────────────────────────────────────
+      # -- build digest and send email --
 
       - name: Send weekly digest email
         env:
@@ -128,7 +128,7 @@ jobs:
           DIGEST_EMAIL_TO:    ${{ secrets.DIGEST_EMAIL_TO }}
         run: python3 tools/weekly_digest.py --input /tmp/scrape_results.json
 
-      # ── job summary ────────────────────────────────────────────────────────
+      # -- job summary --
 
       - name: Job summary
         run: |
