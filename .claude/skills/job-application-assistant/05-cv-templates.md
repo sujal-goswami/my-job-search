@@ -59,7 +59,7 @@ Expected output: `Output written on main_<company>_<role>.pdf (2 pages, ...)`. A
     linkcolor=blue,
     filecolor=magenta,
     urlcolor=blue,
-    pdftitle={[YOUR_NAME] - CV},
+    pdftitle={Sujal Goswami - CV},
     % Keep pdfpagemode=UseNone: this block runs after moderncv's own
     % \AtEndPreamble (moderncv.cls sets pdfpagemode there), so a FullScreen
     % value here would win and open every CV in fullscreen presentation mode.
@@ -69,13 +69,13 @@ Expected output: `Output written on main_<company>_<role>.pdf (2 pages, ...)`. A
 \usepackage{import}
 
 % Personal data
-\name{[FIRST_NAME]}{[LAST_NAME]}
+\name{Sujal}{Goswami}
 % If you have no address to list, DELETE this whole line. \address{}{}{} fails
 % with "There's no line here to end" on every moderncv version.
-\address{[YOUR_ADDRESS]}{}{}
+\address{Gurugram, Haryana 122001, India}{}{}
 \phone[mobile]{[YOUR_PHONE]}
 \email{[YOUR_EMAIL]}
-\extrainfo{\href{[YOUR_LINKEDIN_URL]}{LinkedIn}, \href{[YOUR_GITHUB_URL]}{GitHub}}
+\extrainfo{\href{https://linkedin.com/in/sujal-goswami}{LinkedIn}, \href{https://github.com/sujal-goswami}{GitHub}}
 
 \begin{document}
 \makecvtitle
@@ -137,11 +137,11 @@ When the role sits outside your home domain, **lead with the domain-transfer arg
 **Create 2-3 profile statement templates for your main role types:**
 
 <!-- SETUP: These are populated based on your background -->
-**For [YOUR_PRIMARY_ROLE_TYPE] roles:**
-> [YOUR_PROFILE_STATEMENT_TEMPLATE_1]
+**For Platform / DevOps / SRE roles:**
+> DevOps engineer with hands-on experience building and operating cloud-native platforms at fintech scale. Led delivery of an enterprise AI governance platform (LiteLLM, OPA, Langfuse) and migrated 20+ payment microservices to EKS with zero downtime, serving 5M+ monthly transactions. Strong across the full platform stack: Kubernetes, Terraform, CI/CD, observability, and DevSecOps. Combines infrastructure depth with the ability to lead small engineering teams and ship with measurable outcomes.
 
-**For [YOUR_SECONDARY_ROLE_TYPE] roles:**
-> [YOUR_PROFILE_STATEMENT_TEMPLATE_2]
+**For AI/ML Infrastructure / LLM Platform roles:**
+> Platform engineer specialising in AI/LLM infrastructure. Built a production zero-trust LLM gateway (LiteLLM + OPA + Langfuse) enforcing RBAC, PII guardrails, and workspace budgets across AWS Bedrock, OpenAI, and Azure — achieving 100% ISO/SOC2 compliance. Also architected an enterprise RAG system on AWS Bedrock that cut organisational information retrieval time by 80%. Experienced in the full MLOps/AIOps toolchain: vector databases, semantic caching, self-healing agents, and cost optimisation at scale.
 
 Statements labeled *[Used for: <company>_<role>]* were extracted from archived application drafts by `/setup` Path A. They are **phrasing references, never fact sources**: when drafting from one, every factual claim still comes from `01-candidate-profile.md` - a past tailored draft does not vouch for its own accuracy.
 

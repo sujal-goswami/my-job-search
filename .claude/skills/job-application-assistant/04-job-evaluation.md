@@ -60,9 +60,9 @@ How well do the required/preferred skills align with the candidate's capabilitie
 | 40-59 | Partial match, significant upskilling needed |
 | 0-39 | Fundamental mismatch |
 
-**Strong match areas:** [YOUR_PRIMARY_SKILLS]
-**Moderate match areas:** [YOUR_SECONDARY_SKILLS]
-**Weak match areas:** [SKILLS_YOU_LACK]
+**Strong match areas:** Kubernetes/EKS, AWS (Bedrock, broad platform), Docker, Terraform, CI/CD (Jenkins, GitHub Actions, ArgoCD/FluxCD), DevSecOps, LLM infrastructure (LiteLLM, OPA, Langfuse), RAG systems, AIOps, Helm, Istio, Linux
+**Moderate match areas:** General MLOps, Python backend development, observability tooling (Prometheus, Grafana, Dynatrace, ELK), PostgreSQL/MongoDB/Redis, Ansible
+**Weak match areas:** Frontend development, classical data science/statistics, GCP/Azure-native tooling, formal data engineering (Spark, Airflow), mobile development
 
 ### 2. Experience Match (0-100)
 Does work history align with what they're looking for? Match on the function and nature of the work performed, not the literal job title - a "Data Consultant" and a "Data Scientist" role can be functionally identical.
@@ -74,9 +74,9 @@ Does work history align with what they're looking for? Match on the function and
 | 40-59 | Adjacent experience, would need to make the case |
 | 0-39 | Unrelated experience |
 
-**Strong:** [YOUR_DIRECT_EXPERIENCE_DOMAINS]
-**Moderate:** [YOUR_ADJACENT_EXPERIENCE]
-**Entry-level:** [ROLES_WITH_LIMITED_EXPERIENCE]
+**Strong:** Cloud-native platform engineering (EKS/Kubernetes), AI/LLM infrastructure, fintech payment systems at scale (5M+ monthly transactions), enterprise DevSecOps
+**Moderate:** Backend development, data pipeline engineering, security/compliance tooling (ISO/SOC2)
+**Entry-level:** Pure software engineering roles without infra component, formal data science/ML research roles
 
 ### 3. Behavioral/Culture Fit (0-100)
 Does the role and company culture match the behavioral profile?
@@ -107,19 +107,19 @@ Does this role advance career goals and contain tasks that energize?
 | 0-39 | Dead end or backwards step |
 
 **Career goals:**
-- [YOUR_CAREER_GOAL_1]
-- [YOUR_CAREER_GOAL_2]
-- [YOUR_CAREER_GOAL_3]
+- Build and own AI/LLM infrastructure platforms at scale — the intersection of cloud-native engineering and AI
+- Grow into a senior/staff platform engineer or engineering lead role with technical depth
+- Work on systems that handle real production load (fintech, high-traffic SaaS, enterprise AI)
 
 **Motivation filter:** Evaluate not just whether you *can* do the tasks, but whether the tasks will *energize* you. Consider:
-- Tasks that energize: [YOUR_ENERGIZING_TASKS]
-- Tasks that drain: [YOUR_DRAINING_TASKS]
-- Non-task factors: leadership style, department culture, company values, degree of autonomy
+- Tasks that energize: building novel infrastructure, owning end-to-end delivery, solving hard distributed systems problems, AI/ML platform work
+- Tasks that drain: pure maintenance/on-call without building, bureaucratic process work, roles without technical ownership
+- Non-task factors: technical leadership culture, degree of autonomy, whether the team is building something genuinely new
 
 **Life situation alignment:** Consider personal constraints:
-- **Security**: [YOUR_FINANCIAL_SITUATION_CONTEXT]
-- **Flexibility**: [YOUR_SCHEDULE_CONSTRAINTS]
-- **Professional development**: [YOUR_GROWTH_PRIORITIES]
+- **Security**: Currently employed; not under pressure to accept any offer — can be selective
+- **Flexibility**: Remote-ready; open to hybrid in Gurugram or relocation internationally with visa sponsorship
+- **Professional development**: Wants to grow technical depth and leadership scope simultaneously
 
 ### 6. Salary Benchmark (Optional)
 
