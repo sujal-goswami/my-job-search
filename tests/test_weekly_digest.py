@@ -18,7 +18,7 @@ def job(title="DevOps Engineer", company="Acme", location="Bengaluru, India",
 class FilterTests(unittest.TestCase):
     def test_location_gate(self):
         for loc in ("Bengaluru, Karnataka, India", "Gurgaon/Gurugram", "Remote; India",
-                    "Remote / Worldwide", "", "None", ","):
+                    "Remote / Worldwide", "Remote", "", "None", ","):
             with self.subTest(loc=loc):
                 self.assertTrue(wd.location_ok(loc))
         for loc in ("San Jose, CA", "United States (Remote)", "Москва", "Bern, Switzerland",
@@ -45,6 +45,21 @@ class FilterTests(unittest.TestCase):
     def test_sources_labelled(self):
         out = wd.normalize_jobs([job(portal="greenhouse"), job(portal="freehire-search", url="https://e.com/2")])
         self.assertEqual([j["portal"] for j in out], ["Company ATS", "freehire"])
+
+
+class CategoryTests(unittest.TestCase):
+    def test_spelling_variants_categorised(self):
+        cases = {
+            "Senior DevSecOps Engineer": "DevOps / Platform",
+            "Jr. Dev Ops (Kubernetes) (24*7)": "DevOps / Platform",
+            "Staff Engineer, Core Infrastructure": "DevOps / Platform",
+            "(ML-Ops) Machine Learning Operations Engineer": "AI / LLM Infrastructure",
+            "Performance Engineer, Inference": "AI / LLM Infrastructure",
+            "Site Reliability Engineer - Platform": "SRE / Reliability",
+        }
+        for title, cat in cases.items():
+            with self.subTest(title=title):
+                self.assertTrue(wd.categorize(title).endswith(cat), wd.categorize(title))
 
 
 class HtmlTests(unittest.TestCase):

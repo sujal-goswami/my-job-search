@@ -37,9 +37,12 @@ ENV_FILE = REPO_ROOT / ".env.email"
 
 # ── Category buckets (matched against title keywords) ────────────────────────
 CATEGORIES = [
-    ("🤖 AI / LLM Infrastructure",   ["ai infrastructure", "ml platform", "mlops", "llm", "genai", "ai platform", "agentic", "machine learning infra", "ai engineer"]),
-    ("☸️  DevOps / Platform",          ["devops", "platform engineer", "cloud engineer", "cloud platform", "infrastructure engineer"]),
-    ("🔒 SRE / Reliability",           ["sre", "site reliability", "reliability engineer"]),
+    ("🤖 AI / LLM Infrastructure",   ["ai infrastructure", "ml platform", "mlops", "ml-ops", "llmops", "llm", "genai", "gen ai",
+                                      "ai platform", "agentic", "machine learning", "ai engineer", "ai/ml", "aiml",
+                                      "ml engineer", "inference", "ai integration", "ai software"]),
+    ("🔒 SRE / Reliability",           ["sre", "site reliability", "reliability engineer", "performance engineer"]),
+    ("☸️  DevOps / Platform",          ["devops", "dev ops", "devsecops", "platform", "cloud engineer", "cloud platform",
+                                      "infrastructure", "kubernetes", "terraform", "aws"]),
     ("📦 Other",                        []),   # catch-all
 ]
 
@@ -119,6 +122,9 @@ def safe_url(url: str) -> str:
 def location_ok(location: str) -> bool:
     loc = (location or "").strip()
     if not re.search(r"[^\W_]", loc) or loc.lower() == "none":
+        return True
+    # A bare "Remote" names no country; the searches are India-scoped, so keep it.
+    if re.fullmatch(r"(100% )?remote( job| only| first)?", loc.lower()):
         return True
     if INDIA_RE.search(loc):
         return True
