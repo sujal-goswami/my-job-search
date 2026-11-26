@@ -269,7 +269,10 @@ def send_email(html, subject, from_addr, to_addr, app_password, preview=False):
     msg.attach(MIMEText(html, "html"))
 
     print(f"Sending to {to_addr}...")
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+    with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.ehlo()
         smtp.login(from_addr, app_password)
         smtp.sendmail(from_addr, to_addr, msg.as_string())
     print("Sent.")
