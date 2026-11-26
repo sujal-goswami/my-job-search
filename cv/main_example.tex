@@ -40,7 +40,7 @@
     linkcolor=blue,
     filecolor=magenta,
     urlcolor=blue,
-    pdftitle={[YOUR_NAME] - CV},
+    pdftitle={Sujal Goswami - CV},
     % Keep pdfpagemode=UseNone: this block runs after moderncv's own
     % \AtEndPreamble (moderncv.cls sets pdfpagemode there), so a FullScreen
     % value here would win and open every CV in fullscreen presentation mode.
@@ -50,13 +50,13 @@
 \usepackage{import}
 
 % personal data
-\name{[First]}{[Last]}
+\name{Sujal}{Goswami}
 % If you have no address to list, DELETE this whole line. \address{}{}{} fails
 % with "There's no line here to end" on every moderncv version.
-\address{[Your Address, City, Country]}{}{}
+\address{Gurugram, Haryana 122001, India}{}{}
 \phone[mobile]{[+XX XXXXXXXXXX]}
 \email{[your.email@example.com]}
-\extrainfo{\href{[https://linkedin.com/in/your-profile]}{LinkedIn}, \href{[https://github.com/your-username]}{GitHub}}
+\extrainfo{\href{https://linkedin.com/in/sujal-goswami}{LinkedIn}, \href{https://github.com/sujal-goswami}{GitHub}}
 
 \begin{document}
 
@@ -67,7 +67,7 @@
 % ============================================================
 
 \vspace{6pt}
-\small{[Write a 3-5 line profile statement tailored to the role you're applying for. Focus on what makes you uniquely qualified. Example: "Data scientist with a PhD in [field] and X years of industry experience. Combines deep domain expertise in [domain] with strong applied machine learning and Python development skills. Experienced in developing end-to-end ML pipelines, from data ingestion to stakeholder-facing dashboards."]}
+\small{DevOps engineer with hands-on experience building and operating cloud-native platforms at fintech scale. Led delivery of an enterprise AI governance platform (LiteLLM, OPA, Langfuse) and migrated 20+ payment microservices to EKS with zero downtime, serving 5M\texttt{+} monthly transactions. Strong across the full platform stack: Kubernetes, Terraform, CI/CD, observability, and DevSecOps. Combines infrastructure depth with the ability to lead small engineering teams and ship with measurable outcomes.}
 
 % ============================================================
 %     CORE COMPETENCIES
@@ -77,15 +77,15 @@
 \vspace{1pt}
 \begin{itemize}
 
-\item \textbf{[Skill Category 1]}: [Specific skills, frameworks, tools. Be concrete.]
+\item \textbf{Cloud \& Platform Engineering}: AWS (EKS, Bedrock, broad platform), Kubernetes, Docker, Terraform, Helm, Istio, Karpenter, ArgoCD/FluxCD, Linux
 
-\item \textbf{[Skill Category 2]}: [Specific skills, frameworks, tools.]
+\item \textbf{AI/LLM Infrastructure}: LiteLLM, AWS Bedrock, RAG Systems, Vector Databases, Open Policy Agent (OPA), Langfuse, MLOps/AIOps, LLM Gateways
 
-\item \textbf{[Skill Category 3]}: [Specific skills, frameworks, tools.]
+\item \textbf{CI/CD \& DevSecOps}: Jenkins, GitHub Actions, GitOps, Ansible, IaC, DevSecOps pipelines, ISO/SOC2 compliance tooling
 
-\item \textbf{[Skill Category 4]}: [Domain expertise, methods, approaches.]
+\item \textbf{Observability \& Data}: Prometheus, Grafana, Dynatrace, ELK Stack, Redis, PostgreSQL, MongoDB, MySQL
 
-\item \textbf{[Skill Category 5]}: [Tools, platforms, software.]
+\item \textbf{Programming}: Python, Java, JavaScript, Bash
 
 \end{itemize}
 
@@ -97,34 +97,36 @@
 \vspace{3pt}
 \begin{itemize}
 
-% --- Most Recent Role ---
-\item{\cventry{[YYYY-Present]}{[Job Title]}{[Company]}{[City, Country]}{}{\vspace{1pt}
+\item{\cventry{Jul 2025-Present}{DevOps Engineer}{Freecharge by Axis Bank}{Gurugram, India}{}{\vspace{1pt}
 \begin{itemize}
-    \item {[Achievement or responsibility 1 - be specific, use numbers where possible]}
-    \item {[Achievement or responsibility 2]}
-    \item {[Achievement or responsibility 3]}
-    \item {[Achievement or responsibility 4]}
+    \item {Led a 5-engineer team in developing and delivering an \textbf{Enterprise AI Governance \& Control Platform} using LiteLLM, Open Policy Agent (OPA), and Langfuse --- a unified, zero-trust API gateway for all organisational LLM consumption (AWS Bedrock, OpenAI, Azure)}
+    \item {Enforced dynamic RBAC, semantic caching, and strict workspace budgets; implemented pre/post-prompt guardrails (PII/DLP, injection detection) to ensure \textbf{100\% ISO/SOC2 compliance}, zero data leakage, and significantly optimised LLM spend}
+    \item {Migrated \textbf{20+ payment microservices} to EKS with zero downtime (serving \textbf{5M+ monthly transactions}); implemented Helm + DevSecOps pipeline, cutting deployment time by \textbf{60\%} and reducing manual AppSec assessment time by \textbf{95\%}}
+    \item {Built \textbf{AIOps self-healing agent} (AWS Bedrock) with \textbf{90\% predictive failure accuracy} across 3+ EKS clusters --- reduced MTTR by \textbf{75\%}, ops costs by \textbf{\$50K+}, and achieved \textbf{99.99\% uptime}}
 \end{itemize}}}
 
 \vspace{3pt}
 
-% --- Previous Role ---
-\item{\cventry{[YYYY-YYYY]}{[Job Title]}{[Company]}{[City, Country]}{}{\vspace{1pt}
+\item{\cventry{Jan 2025-Jun 2025}{DevOps Engineering Intern}{Freecharge by Axis Bank}{Gurugram, India}{}{\vspace{1pt}
 \begin{itemize}
-    \item {[Achievement or responsibility 1]}
-    \item {[Achievement or responsibility 2]}
-    \item {[Achievement or responsibility 3]}
+    \item {Architected an enterprise \textbf{RAG (Retrieval-Augmented Generation) system} on AWS Bedrock and OpenAI APIs, enabling employees to query organisational knowledge via a conversational AI interface}
+    \item {Implemented vector embeddings and semantic search with automated Confluence API ingestion pipeline to continuously sync, chunk, and index organisational policies in real time}
+    \item {Reduced internal information retrieval time by \textbf{80\%}, directly improving employee productivity across the organisation}
 \end{itemize}}}
 
-\vspace{3pt}
+\end{itemize}
 
-% --- Earlier Role ---
-\item{\cventry{[YYYY-YYYY]}{[Job Title]}{[Company]}{[City, Country]}{}{\vspace{1pt}
+% ============================================================
+%     COMPETITIVE PROGRAMMING & ACHIEVEMENTS
+% ============================================================
+
+\section{Competitive Programming \& Achievements}
+\vspace{1pt}
 \begin{itemize}
-    \item {[Achievement or responsibility 1]}
-    \item {[Achievement or responsibility 2]}
-\end{itemize}}}
-
+\item{\textbf{LeetCode Knight Status} -- Top 5\% globally, 900+ problems solved, Contest Rating: 1800+}
+\item{\textbf{Outstanding Performance Award} -- Freecharge (2025)}
+\item{\textbf{Innovation Excellence Award (AI Agent)} -- Freecharge (2025)}
+\item{Technical articles published on Hashnode, CNCF Blog, and LeetCode}
 \end{itemize}
 
 % ============================================================
@@ -135,15 +137,7 @@
 \vspace{1pt}
 \begin{itemize}
 
-\item{\cventry{[YYYY-YYYY]}{[Degree] in [Field]}{[Institution]}{[City, Country]}{}{\vspace{1pt}
-Thesis: ``[Thesis Title].'' [Brief description of research focus.]
-}}
-
-\vspace{3pt}
-
-\item{\cventry{[YYYY-YYYY]}{[Degree] in [Field]}{[Institution]}{[City, Country]}{}{\vspace{1pt}
-[Brief description or key topics.]
-}}
+\item{\cventry{2021-2025}{B.Tech in Computer Science and Engineering}{LNM Institute of Information Technology}{Jaipur, Rajasthan, India}{}{}}
 
 \end{itemize}
 
@@ -154,27 +148,7 @@ Thesis: ``[Thesis Title].'' [Brief description of research focus.]
 \section{Languages}
 \vspace{1pt}
 \begin{itemize}
-\item {[Language 1] (native), [Language 2] (fluent), [Language 3] (intermediate).}
-\end{itemize}
-
-% ============================================================
-%     PUBLICATIONS (optional)
-% ============================================================
-
-\section{Publications}
-\vspace{1pt}
-\begin{itemize}
-\item {[Author(s)] ([Year]). [Title]. [Journal/Conference]. \href{[DOI_URL]}{DOI link}}
-\end{itemize}
-
-% ============================================================
-%     HONORS AND AWARDS (optional)
-% ============================================================
-
-\section{Honors and Awards}
-\vspace{1pt}
-\begin{itemize}
-\item{\textbf{[Award Name]} -- [Event/Organization] ([Year]).}
+\item {English (professional working proficiency), Hindi (native).}
 \end{itemize}
 
 % ============================================================

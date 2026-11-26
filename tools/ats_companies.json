@@ -1,0 +1,184 @@
+{
+  "$schema_version": 1,
+  "search": {
+    "locations": [
+      "India",
+      "Bengaluru",
+      "Bangalore",
+      "Gurugram",
+      "Gurgaon",
+      "Hyderabad",
+      "Pune",
+      "Mumbai",
+      "Noida",
+      "Delhi",
+      "Chennai"
+    ]
+  },
+  "roles": [
+    {
+      "id": "ai-infra",
+      "label": "AI / LLM Infrastructure",
+      "keywords": [
+        "ai infrastructure",
+        "ml platform",
+        "mlops",
+        "llm",
+        "genai",
+        "ai platform",
+        "machine learning infrastructure",
+        "inference",
+        "inference"
+      ]
+    },
+    {
+      "id": "devops",
+      "label": "DevOps / Platform",
+      "keywords": [
+        "devops",
+        "platform engineer",
+        "cloud engineer",
+        "infrastructure engineer",
+        "kubernetes",
+        "devsecops",
+        "infrastructure sre",
+        "platform infrastructure",
+        "core infrastructure",
+        "data infrastructure",
+        "product infrastructure",
+        "ai infrastructure"
+      ]
+    },
+    {
+      "id": "sre",
+      "label": "SRE / Reliability",
+      "keywords": [
+        "sre",
+        "site reliability",
+        "reliability engineer",
+        "observability"
+      ]
+    }
+  ],
+  "companies": [
+    {
+      "name": "Anthropic",
+      "priority": true,
+      "ats": {
+        "provider": "greenhouse",
+        "board": "anthropic"
+      }
+    },
+    {
+      "name": "Datadog",
+      "priority": true,
+      "ats": {
+        "provider": "greenhouse",
+        "board": "datadog"
+      }
+    },
+    {
+      "name": "Harness",
+      "priority": true,
+      "ats": {
+        "provider": "greenhouse",
+        "board": "harnessinc"
+      }
+    },
+    {
+      "name": "Groww",
+      "priority": true,
+      "ats": {
+        "provider": "greenhouse",
+        "board": "groww"
+      }
+    },
+    {
+      "name": "CRED",
+      "priority": true,
+      "ats": {
+        "provider": "lever",
+        "board": "cred"
+      }
+    },
+    {
+      "name": "Meesho",
+      "priority": true,
+      "ats": {
+        "provider": "lever",
+        "board": "meesho"
+      }
+    },
+    {
+      "name": "Together AI",
+      "priority": true,
+      "ats": {
+        "provider": "greenhouse",
+        "board": "togetherai"
+      }
+    },
+    {
+      "name": "Grafana Labs",
+      "priority": true,
+      "ats": {
+        "provider": "greenhouse",
+        "board": "grafanalabs"
+      }
+    },
+    {
+      "name": "Stripe",
+      "priority": true,
+      "ats": {
+        "provider": "greenhouse",
+        "board": "stripe"
+      }
+    },
+    {
+      "name": "Cohere",
+      "priority": true,
+      "ats": {
+        "provider": "ashby",
+        "board": "cohere"
+      }
+    },
+    {
+      "name": "Sarvam AI",
+      "priority": true,
+      "ats": {
+        "provider": "ashby",
+        "board": "sarvam"
+      }
+    },
+    {
+      "name": "Modal",
+      "priority": true,
+      "ats": {
+        "provider": "ashby",
+        "board": "modal"
+      }
+    },
+    {
+      "name": "PlanetScale",
+      "priority": true,
+      "ats": {
+        "provider": "greenhouse",
+        "board": "planetscale"
+      }
+    },
+    {
+      "name": "Paytm",
+      "priority": true,
+      "ats": {
+        "provider": "lever",
+        "board": "paytm"
+      }
+    }
+  ],
+  "fetch": {
+    "user_agent": "ai-job-search-weekly-digest/1.0",
+    "request_delay_s": 1.0,
+    "timeout_s": 15,
+    "max_per_company": 15,
+    "respect_robots": true
+  }
+}

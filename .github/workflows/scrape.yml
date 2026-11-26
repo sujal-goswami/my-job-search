@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: '30 3 * * 0'   # Sunday 9:00am IST (03:30 UTC)
 
+permissions:
+  contents: read
+  actions: read   # read the previous run's seen-jobs artifact
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
@@ -38,61 +42,66 @@ jobs:
       - name: LinkedIn - DevOps Kubernetes India
         env:
           LI_AT: ${{ secrets.LI_AT }}
-        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "DevOps Engineer Kubernetes" -l "India" --jobage 7 --limit 25 --format json > /tmp/li_1.json 2>/dev/null || echo "[]" > /tmp/li_1.json
+        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "DevOps Engineer Kubernetes" -l "India" --jobage 7 --limit 25 --format json > /tmp/li_1.json || echo "[]" > /tmp/li_1.json
 
       - name: LinkedIn - AI Infrastructure Engineer India
         env:
           LI_AT: ${{ secrets.LI_AT }}
-        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "AI Infrastructure Engineer" -l "India" --jobage 7 --limit 25 --format json > /tmp/li_2.json 2>/dev/null || echo "[]" > /tmp/li_2.json
+        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "AI Infrastructure Engineer" -l "India" --jobage 7 --limit 25 --format json > /tmp/li_2.json || echo "[]" > /tmp/li_2.json
 
       - name: LinkedIn - Platform Engineer AWS India
         env:
           LI_AT: ${{ secrets.LI_AT }}
-        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "Platform Engineer AWS" -l "India" --jobage 7 --limit 25 --format json > /tmp/li_3.json 2>/dev/null || echo "[]" > /tmp/li_3.json
+        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "Platform Engineer AWS" -l "India" --jobage 7 --limit 25 --format json > /tmp/li_3.json || echo "[]" > /tmp/li_3.json
 
       - name: LinkedIn - MLOps LLM Platform India
         env:
           LI_AT: ${{ secrets.LI_AT }}
-        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "MLOps LLM Platform Engineer" -l "India" --jobage 7 --limit 25 --format json > /tmp/li_4.json 2>/dev/null || echo "[]" > /tmp/li_4.json
+        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "MLOps LLM Platform Engineer" -l "India" --jobage 7 --limit 25 --format json > /tmp/li_4.json || echo "[]" > /tmp/li_4.json
 
       - name: LinkedIn - SRE Kubernetes India
         env:
           LI_AT: ${{ secrets.LI_AT }}
-        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "Site Reliability Engineer Kubernetes" -l "India" --jobage 7 --limit 25 --format json > /tmp/li_5.json 2>/dev/null || echo "[]" > /tmp/li_5.json
+        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "Site Reliability Engineer Kubernetes" -l "India" --jobage 7 --limit 25 --format json > /tmp/li_5.json || echo "[]" > /tmp/li_5.json
 
       - name: LinkedIn - Remote AI DevOps
         env:
           LI_AT: ${{ secrets.LI_AT }}
-        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "AI Infrastructure DevOps remote" -l "" --jobage 7 --limit 20 --format json > /tmp/li_6.json 2>/dev/null || echo "[]" > /tmp/li_6.json
+        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "AI Infrastructure DevOps remote" -l "" --jobage 7 --limit 20 --format json > /tmp/li_6.json || echo "[]" > /tmp/li_6.json
 
       - name: LinkedIn - DevSecOps India
         env:
           LI_AT: ${{ secrets.LI_AT }}
-        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "DevSecOps Engineer India" -l "India" --jobage 7 --limit 20 --format json > /tmp/li_7.json 2>/dev/null || echo "[]" > /tmp/li_7.json
+        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "DevSecOps Engineer India" -l "India" --jobage 7 --limit 20 --format json > /tmp/li_7.json || echo "[]" > /tmp/li_7.json
 
       - name: LinkedIn - Cloud Engineer Terraform India
         env:
           LI_AT: ${{ secrets.LI_AT }}
-        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "Cloud Engineer Terraform AWS" -l "India" --jobage 7 --limit 20 --format json > /tmp/li_8.json 2>/dev/null || echo "[]" > /tmp/li_8.json
+        run: bun run .agents/skills/linkedin-search/cli/src/cli.ts search -q "Cloud Engineer Terraform AWS" -l "India" --jobage 7 --limit 20 --format json > /tmp/li_8.json || echo "[]" > /tmp/li_8.json
 
       # -- freehire searches --
 
       - name: freehire - DevOps Kubernetes
-        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "devops kubernetes" --jobage 7 --limit 25 --format json > /tmp/fh_1.json 2>/dev/null || echo "[]" > /tmp/fh_1.json
+        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "devops kubernetes" --country IN --no-description --jobage 7 --limit 25 --format json > /tmp/fh_1.json || echo "[]" > /tmp/fh_1.json
 
       - name: freehire - AI Infrastructure LLM
-        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "ai infrastructure llm platform" --jobage 7 --limit 25 --format json > /tmp/fh_2.json 2>/dev/null || echo "[]" > /tmp/fh_2.json
+        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "ai infrastructure llm platform" --country IN --no-description --jobage 7 --limit 25 --format json > /tmp/fh_2.json || echo "[]" > /tmp/fh_2.json
 
       - name: freehire - SRE Platform
-        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "site reliability engineer platform" --jobage 7 --limit 25 --format json > /tmp/fh_3.json 2>/dev/null || echo "[]" > /tmp/fh_3.json
+        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "site reliability engineer platform" --country IN --no-description --jobage 7 --limit 25 --format json > /tmp/fh_3.json || echo "[]" > /tmp/fh_3.json
 
       - name: freehire - MLOps Cloud Native
-        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "mlops cloud native engineer" --jobage 7 --limit 20 --format json > /tmp/fh_4.json 2>/dev/null || echo "[]" > /tmp/fh_4.json
+        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "mlops cloud native engineer" --country IN --no-description --jobage 7 --limit 20 --format json > /tmp/fh_4.json || echo "[]" > /tmp/fh_4.json
 
       # -- target company career page scraping --
 
-      - name: Scrape target company career pages
-        run: python3 tools/scrape_companies.py > /tmp/company_careers.json
+      - name: Target companies - public ATS boards
+        # Exit 1 means most boards errored; keep whatever came back and let the
+        # digest's source-health warning flag it instead of killing the run.
+        run: python3 tools/fetch_ats.py --config tools/ats_companies.json --out /tmp/ats.json || test -s /tmp/ats.json || echo "[]" > /tmp/ats.json
+
+      - name: Target companies - career pages without an ATS board
+        run: python3 tools/scrape_companies.py > /tmp/company_careers.json || echo "[]" > /tmp/company_careers.json
 
       # -- merge all results --
 
@@ -111,6 +120,7 @@ jobs:
             /tmp/fh_2.json:freehire-search \
             /tmp/fh_3.json:freehire-search \
             /tmp/fh_4.json:freehire-search \
+            /tmp/ats.json:company-ats \
             /tmp/company_careers.json:company-careers \
             --out /tmp/scrape_results.json
 
@@ -123,26 +133,37 @@ jobs:
 
       # -- build digest and send email --
 
+      # URLs already emailed, so each digest only shows postings not sent before.
+      # Kept as a 90-day artifact (Actions caches are evicted after 7 idle days,
+      # which a weekly schedule would hit) and read back from the last good run.
+      - name: Restore seen-jobs state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .digest_state
+          RUN_ID=$(gh run list -R "$GITHUB_REPOSITORY" --workflow scrape.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -n "$RUN_ID" ]; then
+            gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -n digest-seen -D .digest_state || echo "No seen-jobs state in run $RUN_ID; starting fresh."
+          else
+            echo "No previous successful run; starting fresh."
+          fi
+
       - name: Send weekly digest email
         env:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           DIGEST_EMAIL_FROM:  ${{ secrets.DIGEST_EMAIL_FROM }}
           DIGEST_EMAIL_TO:    ${{ secrets.DIGEST_EMAIL_TO }}
-        run: python3 tools/weekly_digest.py --input /tmp/scrape_results.json
+        run: python3 tools/weekly_digest.py --input /tmp/scrape_results.json --seen-file .digest_state/seen.json
 
-      # -- job summary --
+      - name: Save seen-jobs state
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-seen
+          path: .digest_state/seen.json
+          retention-days: 90
 
-      - name: Job summary
+      # weekly_digest.py writes the per-source table to the job summary itself.
+      - name: Sync hint
         run: |
-          COUNT=$(python3 -c "import json; print(len(json.load(open('/tmp/scrape_results.json'))))")
-          echo "## Weekly Digest Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Jobs found | $COUNT |" >> $GITHUB_STEP_SUMMARY
-          echo "| Run at | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Digest email sent. To sync locally:" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "python3 tools/linkedin_sync.py" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "To sync locally: \`python3 tools/linkedin_sync.py\`" >> $GITHUB_STEP_SUMMARY
