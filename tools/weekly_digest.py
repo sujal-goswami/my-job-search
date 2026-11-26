@@ -6,6 +6,10 @@ send HTML email with Excel attachment.
 Usage:
   python3 tools/weekly_digest.py --input /tmp/scrape_results.json
   python3 tools/weekly_digest.py --input /tmp/scrape_results.json --preview
+  python3 tools/weekly_digest.py --input ... --seen-file .digest_state/seen.json
+
+--seen-file keeps the URLs already emailed, so each week only shows postings
+you have not seen yet. It is updated only after the email is sent.
 
 Environment variables (or .env.email):
   DIGEST_EMAIL_FROM      sender Gmail
@@ -14,12 +18,14 @@ Environment variables (or .env.email):
 """
 
 import argparse
+import html as html_lib
 import io
 import json
 import os
 import smtplib
 import sys
-from datetime import date, datetime
+import re
+from datetime import date, datetime, timedelta
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -47,6 +53,39 @@ DREAM_COMPANIES = {
     "stripe", "together", "modal", "replicate"
 }
 
+# Titles that are not hands-on engineering roles for this profile.
+EXCLUDE_TITLE_RE = re.compile(
+    r"\b((engineering|product|program|project|account|delivery) manager|director|head of|"
+    r"vice president|policy|strategy|"
+    r"sales|gtm|account executive|recruit\w*|intern(ship)?|technical support|support engineer)\b",
+    re.I,
+)
+
+# Location gate: India, India-hireable remote, or no location at all (the
+# source did not say - keep it and let the reader decide).
+INDIA_RE = re.compile(
+    r"\b(india|bengaluru|bangalore|gurugram|gurgaon|hyderabad|pune|mumbai|noida|delhi|"
+    r"chennai|kolkata|ahmedabad|jaipur|kochi|coimbatore|trivandrum|vadodara|chandigarh|indore)\b",
+    re.I,
+)
+GLOBAL_REMOTE_RE = re.compile(r"\b(worldwide|anywhere|global|apac|asia)\b", re.I)
+
+SEEN_RETENTION_DAYS = 90
+
+PORTAL_LABELS = {
+    "linkedin-search": "LinkedIn",
+    "freehire-search": "freehire",
+    "greenhouse": "Company ATS",
+    "lever": "Company ATS",
+    "ashby": "Company ATS",
+    "workable": "Company ATS",
+    "smartrecruiters": "Company ATS",
+    "company-careers": "Career pages",
+}
+# Sources that should never come back empty; an empty one means a broken
+# scraper or an expired credential, not a quiet week.
+EXPECTED_SOURCES = ("LinkedIn", "freehire", "Company ATS")
+
 # ── colours ───────────────────────────────────────────────────────────────────
 C_DARK   = "#1e293b"
 C_ACCENT = "#6366f1"   # indigo
@@ -68,6 +107,47 @@ def load_env():
                 os.environ.setdefault(k.strip(), v.strip())
 
 
+def esc(value) -> str:
+    return html_lib.escape(str(value or ""), quote=True)
+
+
+def safe_url(url: str) -> str:
+    url = (url or "").strip()
+    return url if url.lower().startswith(("https://", "http://")) else ""
+
+
+def location_ok(location: str) -> bool:
+    loc = (location or "").strip()
+    if not re.search(r"[^\W_]", loc) or loc.lower() == "none":
+        return True
+    if INDIA_RE.search(loc):
+        return True
+    return "remote" in loc.lower() and bool(GLOBAL_REMOTE_RE.search(loc))
+
+
+def source_label(portal: str) -> str:
+    return PORTAL_LABELS.get(portal, portal or "other")
+
+
+def load_seen(path):
+    if not path or not Path(path).exists():
+        return {}
+    try:
+        data = json.loads(Path(path).read_text())
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_seen(path, seen: dict, jobs: list, today: str):
+    cutoff = (date.fromisoformat(today) - timedelta(days=SEEN_RETENTION_DAYS)).isoformat()
+    kept = {u: d for u, d in seen.items() if d >= cutoff}
+    for j in jobs:
+        kept.setdefault(j["url"], today)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(json.dumps(kept, indent=0, sort_keys=True))
+
+
 def categorize(title: str) -> str:
     t = title.lower()
     for cat_name, keywords in CATEGORIES[:-1]:
@@ -81,21 +161,38 @@ def is_dream(company: str) -> bool:
     return any(d in c for d in DREAM_COMPANIES)
 
 
-def normalize_jobs(raw: list) -> list:
+def normalize_jobs(raw: list, stats: dict = None) -> list:
+    """Clean, filter and dedupe raw scrape records.
+
+    `stats`, if given, collects per-reason drop counts and per-source totals.
+    """
+    stats = stats if stats is not None else {}
+    stats.setdefault("dropped", {"off-location": 0, "off-role": 0, "invalid": 0})
+    stats.setdefault("raw_by_source", {})
     jobs = []
     for item in raw:
         company = (item.get("company") or "").strip()
         title   = (item.get("title")   or "").strip()
-        url     = item.get("url") or item.get("jobUrl") or ""
+        url     = safe_url(item.get("url") or item.get("jobUrl") or "")
+        portal  = item.get("_portal") or item.get("portal") or ""
+        src = source_label(portal)
+        stats["raw_by_source"][src] = stats["raw_by_source"].get(src, 0) + 1
         if not company or not title or not url:
+            stats["dropped"]["invalid"] += 1
+            continue
+        if EXCLUDE_TITLE_RE.search(title):
+            stats["dropped"]["off-role"] += 1
+            continue
+        if not location_ok(item.get("location") or ""):
+            stats["dropped"]["off-location"] += 1
             continue
         jobs.append({
             "title":    title,
             "company":  company,
-            "location": item.get("location") or "",
+            "location": "" if str(item.get("location")).lower() == "none" else (item.get("location") or ""),
             "url":      url,
             "date":     item.get("date") or item.get("postedAt") or "",
-            "portal":   item.get("_portal") or item.get("portal") or "",
+            "portal":   src,
             "skills":   item.get("skills") or [],
             "category": categorize(title),
             "dream":    is_dream(company),
@@ -108,6 +205,14 @@ def normalize_jobs(raw: list) -> list:
             seen.add(j["url"])
             deduped.append(j)
     return deduped
+
+
+def _neg_date(d: str) -> str:
+    """Sort key that puts newer ISO dates first and undated postings last."""
+    d = (d or "")[:10]
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
+        return "~"
+    return "".join(chr(ord("9") - ord(c) + ord("0")) if c.isdigit() else c for c in d)
 
 
 def build_excel(jobs: list, today: str) -> bytes:
@@ -146,7 +251,7 @@ def build_excel(jobs: list, today: str) -> bytes:
         ws.column_dimensions[get_column_letter(i)].width = w
 
     # sort: dream companies first, then by category
-    sorted_jobs = sorted(jobs, key=lambda j: (0 if j["dream"] else 1, j["category"], j["company"]))
+    sorted_jobs = sorted(jobs, key=lambda j: (0 if j["dream"] else 1, j["category"], _neg_date(j["date"]), j["company"]))
 
     for i, job in enumerate(sorted_jobs, 1):
         row = i + 1
@@ -250,7 +355,8 @@ def build_excel(jobs: list, today: str) -> bytes:
     return buf.getvalue()
 
 
-def build_html(jobs: list, today: str) -> str:
+def build_html(jobs: list, today: str, stats: dict = None) -> str:
+    stats = stats or {}
     by_category = {}
     for j in jobs:
         by_category.setdefault(j["category"], []).append(j)
@@ -262,9 +368,9 @@ def build_html(jobs: list, today: str) -> str:
         dream_badge = '<span style="background:#f59e0b;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-right:6px">⭐ DREAM</span>' if j["dream"] else ""
         skills_html = ""
         if j["skills"]:
-            tags = "".join(f'<span style="background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:3px;font-size:10px;margin:1px 2px 1px 0;display:inline-block">{s}</span>' for s in j["skills"][:6])
+            tags = "".join(f'<span style="background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:3px;font-size:10px;margin:1px 2px 1px 0;display:inline-block">{esc(s)}</span>' for s in j["skills"][:6])
             skills_html = f'<div style="margin-top:4px">{tags}</div>'
-        date_str = f'<span style="color:{C_MUTED};font-size:11px">{j["date"]}</span>' if j["date"] else ""
+        date_str = f'<span style="color:{C_MUTED};font-size:11px">{esc(j["date"])}</span>' if j["date"] else ""
         border_color = C_DREAM if j["dream"] else C_BORDER
         return f"""
 <tr><td style="padding:0 0 8px 0">
@@ -272,12 +378,12 @@ def build_html(jobs: list, today: str) -> str:
 <tr><td style="padding:12px 16px">
   <div style="display:flex;justify-content:space-between;align-items:flex-start">
     <div>
-      {dream_badge}<strong style="font-size:14px;color:{C_TEXT}">{j['title']}</strong>
-      <span style="color:{C_MUTED};font-size:13px"> · {j['company']}</span>
+      {dream_badge}<strong style="font-size:14px;color:{C_TEXT}">{esc(j['title'])}</strong>
+      <span style="color:{C_MUTED};font-size:13px"> · {esc(j['company'])}</span>
     </div>
-    <a href="{j['url']}" style="display:inline-block;padding:4px 14px;background:{C_ACCENT};color:#fff;text-decoration:none;border-radius:4px;font-size:12px;font-weight:600;white-space:nowrap;margin-left:12px">Apply →</a>
+    <a href="{esc(j['url'])}" style="display:inline-block;padding:4px 14px;background:{C_ACCENT};color:#fff;text-decoration:none;border-radius:4px;font-size:12px;font-weight:600;white-space:nowrap;margin-left:12px">Apply →</a>
   </div>
-  <div style="margin-top:3px;color:{C_MUTED};font-size:12px">{j['location'] or 'India'} &nbsp;·&nbsp; {date_str} &nbsp;·&nbsp; {j['portal']}</div>
+  <div style="margin-top:3px;color:{C_MUTED};font-size:12px">{esc(j['location']) or 'Location not listed'} &nbsp;·&nbsp; {date_str} &nbsp;·&nbsp; {esc(j['portal'])}</div>
   {skills_html}
 </td></tr></table>
 </td></tr>"""
@@ -288,13 +394,34 @@ def build_html(jobs: list, today: str) -> str:
         if not cat_jobs:
             continue
         # dream companies first within category
-        cat_jobs = sorted(cat_jobs, key=lambda j: (0 if j["dream"] else 1, j["company"]))
+        cat_jobs = sorted(cat_jobs, key=lambda j: (0 if j["dream"] else 1, _neg_date(j["date"]), j["company"]))
         rows = "".join(job_row(j) for j in cat_jobs)
         sections += f"""
 <tr><td style="background:{C_CARD};padding:0 28px">
   <h2 style="margin:20px 0 10px;font-size:14px;font-weight:700;color:{C_DARK};text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid {C_BORDER};padding-bottom:6px">{cat_name} &nbsp;<span style="font-weight:400;color:{C_MUTED}">({len(cat_jobs)})</span></h2>
   <table width="100%" cellpadding="0" cellspacing="0">{rows}</table>
 </td></tr>"""
+
+    by_source = {}
+    for j in jobs:
+        by_source[j["portal"]] = by_source.get(j["portal"], 0) + 1
+    source_line = " &nbsp;·&nbsp; ".join(f"{esc(k)}: {v}" for k, v in sorted(by_source.items())) or "none"
+    dropped = stats.get("dropped", {})
+    already = stats.get("already_seen", 0)
+    filter_line = (f"Filtered out: {dropped.get('off-location', 0)} outside India/remote, "
+                   f"{dropped.get('off-role', 0)} non-engineering roles, {already} already sent in earlier digests")
+    warnings = stats.get("warnings", [])
+    warning_html = ""
+    if warnings:
+        items = "".join(f"<li>{esc(w)}</li>" for w in warnings)
+        warning_html = f"""
+<tr><td style="background:#fef2f2;padding:12px 28px;border-left:4px solid #dc2626">
+  <p style="margin:0 0 4px;color:#991b1b;font-size:13px;font-weight:700">Source health warning</p>
+  <ul style="margin:0;padding-left:18px;color:#991b1b;font-size:12px">{items}</ul>
+</td></tr>"""
+    if not jobs:
+        sections = f"""
+<tr><td style="background:{C_CARD};padding:24px 28px;color:{C_MUTED};font-size:13px">No new matching openings this week.</td></tr>"""
 
     return f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -306,7 +433,9 @@ def build_html(jobs: list, today: str) -> str:
 <tr><td style="background:{C_DARK};border-radius:8px 8px 0 0;padding:24px 28px">
   <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700">Weekly Job Digest</h1>
   <p style="margin:6px 0 0;color:#94a3b8;font-size:13px">{today} &nbsp;·&nbsp; <strong style="color:#fff">{total} new openings</strong> &nbsp;·&nbsp; {dream_count} from dream companies &nbsp;·&nbsp; Excel attached</p>
+  <p style="margin:6px 0 0;color:#94a3b8;font-size:11px">By source: {source_line}<br>{filter_line}</p>
 </td></tr>
+{warning_html}
 
 <tr><td style="background:#eff6ff;padding:12px 28px;border-left:4px solid {C_ACCENT}">
   <p style="margin:0;color:#1e40af;font-size:13px">
@@ -319,7 +448,7 @@ def build_html(jobs: list, today: str) -> str:
 <tr><td style="background:{C_DARK};border-radius:0 0 8px 8px;padding:16px 28px">
   <p style="margin:0;color:#64748b;font-size:11px">
     Weekly Job Digest · {today} · ai-job-search pipeline<br>
-    Sources: LinkedIn (GitHub Actions) + freehire.me aggregator + 53 target company career pages<br>
+    Sources: LinkedIn search + freehire.me (India) + target companies' public ATS boards + career pages<br>
     Excel spreadsheet attached with full data, hyperlinks, and category tabs
   </p>
 </td></tr>
@@ -328,7 +457,7 @@ def build_html(jobs: list, today: str) -> str:
 
 
 def send(html: str, excel_bytes: bytes, subject: str, from_addr: str, to_addr: str,
-         app_password: str, today: str, preview: bool = False):
+         app_password: str, today: str, preview: bool = False, job_count: int = 0):
     if preview:
         print(html[:3000])
         print(f"\n[Excel: {len(excel_bytes) if excel_bytes else 0} bytes]")
@@ -358,7 +487,26 @@ def send(html: str, excel_bytes: bytes, subject: str, from_addr: str, to_addr: s
         smtp.ehlo()
         smtp.login(from_addr, app_password)
         smtp.sendmail(from_addr, to_addr, msg.as_string())
-    print(f"Sent! {len(jobs) if 'jobs' in dir() else '?'} jobs, Excel {'attached' if excel_bytes else 'skipped (openpyxl missing)'}.")
+    print(f"Sent! {job_count} jobs, Excel {'attached' if excel_bytes else 'skipped (openpyxl missing)'}.")
+
+
+def write_step_summary(jobs: list, stats: dict, today: str):
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not path:
+        return
+    by_source = {}
+    for j in jobs:
+        by_source[j["portal"]] = by_source.get(j["portal"], 0) + 1
+    lines = ["## Weekly Digest", "", f"Run date: {today}", "",
+             "| Source | Raw | In digest |", "|---|---|---|"]
+    for src in sorted(set(stats["raw_by_source"]) | set(by_source) | set(EXPECTED_SOURCES)):
+        lines.append(f"| {src} | {stats['raw_by_source'].get(src, 0)} | {by_source.get(src, 0)} |")
+    d = stats["dropped"]
+    lines += ["", f"Dropped: {d['off-location']} off-location, {d['off-role']} off-role, "
+              f"{d['invalid']} invalid, {stats['already_seen']} already sent", ""]
+    lines += [f"> **Warning:** {w}" for w in stats["warnings"]]
+    with open(path, "a") as f:
+        f.write("\n".join(lines) + "\n")
 
 
 def main():
@@ -366,6 +514,7 @@ def main():
     parser.add_argument("--input", required=True, help="Path to scrape_results.json")
     parser.add_argument("--preview", action="store_true")
     parser.add_argument("--to", type=str)
+    parser.add_argument("--seen-file", help="JSON of URLs already emailed; only unseen jobs are sent")
     args = parser.parse_args()
 
     load_env()
@@ -380,19 +529,35 @@ def main():
     with open(args.input) as f:
         raw = json.load(f)
 
-    global jobs
-    jobs = normalize_jobs(raw)
-    print(f"Jobs loaded: {len(jobs)} (from {len(raw)} raw)")
-
     today = date.today().strftime("%Y-%m-%d")
-    html  = build_html(jobs, today)
+    stats = {}
+    jobs = normalize_jobs(raw, stats)
+    seen = load_seen(args.seen_file)
+    fresh = [j for j in jobs if j["url"] not in seen]
+    stats["already_seen"] = len(jobs) - len(fresh)
+    stats["warnings"] = [
+        f"{src} returned 0 results - check the scraper"
+        + (" (the LI_AT cookie secret may have expired)" if src == "LinkedIn" else "")
+        for src in EXPECTED_SOURCES if not stats["raw_by_source"].get(src)
+    ]
+    jobs = fresh
+    print(f"Raw by source: {stats['raw_by_source']}")
+    print(f"Dropped: {stats['dropped']}, already seen: {stats['already_seen']}")
+    print(f"Jobs in digest: {len(jobs)} (from {len(raw)} raw)")
+    for w in stats["warnings"]:
+        print(f"WARNING: {w}")
+    write_step_summary(jobs, stats, today)
+
+    html  = build_html(jobs, today, stats)
     xlsx  = build_excel(jobs, today)
 
     if xlsx is None:
         print("Warning: openpyxl not installed — Excel skipped. Install with: pip install openpyxl")
 
     subject = f"Weekly Job Digest — {today} ({len(jobs)} openings)"
-    send(html, xlsx, subject, from_addr, to_addr, app_pw, today, preview=args.preview)
+    send(html, xlsx, subject, from_addr, to_addr, app_pw, today, preview=args.preview, job_count=len(jobs))
+    if args.seen_file and not args.preview:
+        save_seen(args.seen_file, seen, jobs, today)
 
 
 if __name__ == "__main__":

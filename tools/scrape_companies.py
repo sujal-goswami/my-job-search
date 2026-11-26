@@ -2,6 +2,13 @@
 """
 scrape_companies.py - Scrape target company career pages for DevOps/Platform/AI roles.
 Outputs JSON to stdout (list of job objects).
+
+Companies with a public ATS board (Greenhouse/Lever/Ashby) live in
+tools/ats_companies.json and are fetched by tools/fetch_ats.py instead - that
+returns real postings with locations and dates. This scraper is only the
+fallback for career pages without a public board, so it is deliberately
+strict: a link counts as a job only if its text names an engineering role and
+its URL looks like a posting (or lives on a known ATS host).
 """
 import json
 import sys
@@ -9,18 +16,13 @@ import time
 import urllib.request
 import urllib.error
 from html.parser import HTMLParser
-from urllib.parse import urljoin
+import re
+from urllib.parse import urljoin, urlparse
 
 COMPANIES = [
     ("Zerodha",      "https://zerodha.com/careers/",                       ["devops","platform","infrastructure","kubernetes","sre"]),
-    ("Harness",      "https://www.harness.io/company/careers",             ["devops","platform","sre","infrastructure","kubernetes"]),
     ("Devtron",      "https://devtron.ai/careers/",                        ["devops","platform","kubernetes","infrastructure"]),
-    ("Sarvam AI",    "https://www.sarvam.ai/careers",                      ["devops","mlops","platform","ai","infrastructure"]),
     ("Razorpay",     "https://razorpay.com/jobs/",                         ["devops","platform","sre","infrastructure","kubernetes"]),
-    ("CRED",         "https://cred.club/careers/",                         ["devops","platform","infrastructure","sre"]),
-    ("PhonePe",      "https://www.phonepe.com/en-in/careers/",             ["devops","platform","sre","infrastructure"]),
-    ("Groww",        "https://careers.groww.in/",                          ["devops","platform","sre","infrastructure"]),
-    ("Paytm",        "https://careers.paytm.com/",                        ["devops","platform","infrastructure","sre"]),
     ("InfraCloud",   "https://www.infracloud.io/careers/",                 ["kubernetes","devops","platform","cloud"]),
     ("Delhivery",    "https://www.delhivery.com/careers/",                 ["devops","platform","sre","infrastructure"]),
     ("Cashfree",     "https://www.cashfree.com/company/careers/",          ["devops","platform","infrastructure","engineer"]),
@@ -28,14 +30,9 @@ COMPANIES = [
     ("BrowserStack", "https://www.browserstack.com/careers",               ["devops","platform","infrastructure","sre"]),
     ("Sprinklr",     "https://www.sprinklr.com/careers/",                  ["devops","platform","infrastructure","cloud"]),
     ("Freshworks",   "https://www.freshworks.com/company/careers/",        ["devops","sre","platform","infrastructure"]),
-    ("Meesho",       "https://meesho.io/careers",                          ["devops","sre","platform","infrastructure"]),
     ("Postman",      "https://www.postman.com/company/careers/",           ["devops","sre","platform","infrastructure"]),
-    ("Datadog",      "https://careers.datadoghq.com/",                     ["devops","sre","platform","infrastructure","india"]),
-    ("Anthropic",    "https://www.anthropic.com/careers",                  ["devops","platform","infrastructure","ml","ai"]),
-    ("Cohere",       "https://cohere.com/careers",                         ["devops","mlops","platform","infrastructure","ai"]),
     ("Swiggy",       "https://careers.swiggy.com/",                        ["devops","platform","sre","infrastructure"]),
     ("Cars24",       "https://www.cars24.com/careers/",                    ["devops","platform","infrastructure","engineer"]),
-    ("OfBusiness",   "https://www.ofbusiness.in/careers",                  ["devops","platform","infrastructure","engineer"]),
 ]
 
 HEADERS = {
@@ -43,6 +40,31 @@ HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
 }
+
+
+# Link text must name an engineering role, not just a topic ("Kubernetes",
+# "AI Platform" product pages, blog posts).
+ROLE_RE = re.compile(r"\b(engineer|engineering|sre|devops|devsecops|developer|architect|sde)\b", re.I)
+# Posting-shaped URL paths, or ATS hosts that only serve postings.
+JOB_PATH_RE = re.compile(r"/(jobs?|careers?|positions?|openings?|roles?|vacanc(y|ies)|apply)(/|\?|#|$|-)", re.I)
+ATS_HOSTS = ("greenhouse.io", "lever.co", "ashbyhq.com", "workable.com", "smartrecruiters.com",
+             "keka.com", "darwinbox.in", "zohorecruit", "freshteam.com", "myworkdayjobs.com")
+BLOCKED_HOSTS = ("linkedin.com", "twitter.com", "x.com", "facebook.com", "instagram.com", "youtube.com")
+
+
+def looks_like_job(text, href, base_url):
+    if not ROLE_RE.search(text):
+        return False
+    parsed = urlparse(href)
+    host = parsed.netloc.lower()
+    if parsed.scheme not in ("http", "https") or any(b in host for b in BLOCKED_HOSTS):
+        return False
+    if any(a in host for a in ATS_HOSTS):
+        return True
+    # A link back to the careers page itself (or an anchor on it) is navigation.
+    if href.split("#")[0].rstrip("/") == base_url.split("#")[0].rstrip("/"):
+        return False
+    return bool(JOB_PATH_RE.search(parsed.path + ("?" + parsed.query if parsed.query else "")))
 
 
 class JobLinkExtractor(HTMLParser):
@@ -63,12 +85,12 @@ class JobLinkExtractor(HTMLParser):
 
     def handle_endtag(self, tag):
         if tag == "a" and self._in_a:
-            text = " ".join(self._text).strip()
+            text = " ".join(" ".join(self._text).split())
             href = self._href or ""
             if text and href and any(t in text.lower() for t in self.terms):
                 if not href.startswith("http"):
                     href = urljoin(self.base_url, href)
-                if 8 < len(text) < 120:
+                if 8 < len(text) < 120 and looks_like_job(text, href, self.base_url):
                     self.jobs.append({"title": text, "url": href})
             self._in_a = False
             self._href = None
