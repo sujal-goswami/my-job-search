@@ -75,6 +75,24 @@ GLOBAL_REMOTE_RE = re.compile(r"\b(worldwide|anywhere|global|apac|asia)\b", re.I
 
 SEEN_RETENTION_DAYS = 90
 
+# Experience gate: drop postings that ask for MAX_YEARS or more. A posting that
+# states no requirement is kept.
+MAX_YEARS = 5
+SENIOR_TITLE_RE = re.compile(r"\b(staff|principal|distinguished)\b", re.I)
+_NUM = (r"(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|"
+        r"thirteen|fourteen|fifteen)")
+_WORD_NUMS = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve "
+    "thirteen fourteen fifteen".split())}
+YEARS_RE = re.compile(
+    r"(?P<lead>\b(?:minimum|min\.?|at\s+least|atleast)\s*(?:of\s*)?)?"
+    r"\b" + _NUM + r"(?:\.\d)?\s*(?P<plus>\+|plus)?\s*"
+    r"(?P<range>(?:-|–|—|to)\s*" + _NUM + r"(?:\.\d)?\s*\+?\s*)?"
+    r"(?:years?|yrs?|yoe)\b(?=(?P<after>.{0,60}))",
+    re.I | re.S,
+)
+EXP_WORD_RE = re.compile(r"\b(experience[ds]?|exp\b|work(ing)?|hands[- ]on|background)", re.I)
+
 PORTAL_LABELS = {
     "linkedin-search": "LinkedIn",
     "freehire-search": "freehire",
@@ -154,6 +172,25 @@ def save_seen(path, seen: dict, jobs: list, today: str):
     Path(path).write_text(json.dumps(kept, indent=0, sort_keys=True))
 
 
+def _years(token: str) -> int:
+    return int(token) if token.isdigit() else _WORD_NUMS[token.lower()]
+
+
+def required_years(text: str):
+    """Highest minimum years-of-experience the text asks for, or None if it states none."""
+    found = []
+    for m in YEARS_RE.finditer(text or ""):
+        before = text[max(0, m.start() - 40):m.start()]
+        explicit = m.group("lead") or m.group("plus") or m.group("range")
+        if not (explicit or EXP_WORD_RE.search(m.group("after")) or EXP_WORD_RE.search(before)):
+            continue
+        n = _years(m.group(2))
+        # Bigger numbers are company history ("over 20 years"), not a hiring bar.
+        if 0 < n <= 15:
+            found.append(n)
+    return max(found) if found else None
+
+
 def categorize(title: str) -> str:
     t = title.lower()
     for cat_name, keywords in CATEGORIES[:-1]:
@@ -173,7 +210,7 @@ def normalize_jobs(raw: list, stats: dict = None) -> list:
     `stats`, if given, collects per-reason drop counts and per-source totals.
     """
     stats = stats if stats is not None else {}
-    stats.setdefault("dropped", {"off-location": 0, "off-role": 0, "invalid": 0})
+    stats.setdefault("dropped", {"off-location": 0, "off-role": 0, "over-experience": 0, "invalid": 0})
     stats.setdefault("raw_by_source", {})
     jobs = []
     for item in raw:
@@ -192,6 +229,10 @@ def normalize_jobs(raw: list, stats: dict = None) -> list:
         if not location_ok(item.get("location") or ""):
             stats["dropped"]["off-location"] += 1
             continue
+        years = required_years(f"{title}\n{item.get('description') or ''}")
+        if SENIOR_TITLE_RE.search(title) or (years is not None and years >= MAX_YEARS):
+            stats["dropped"]["over-experience"] += 1
+            continue
         jobs.append({
             "title":    title,
             "company":  company,
@@ -200,6 +241,7 @@ def normalize_jobs(raw: list, stats: dict = None) -> list:
             "date":     item.get("date") or item.get("postedAt") or "",
             "portal":   src,
             "skills":   item.get("skills") or [],
+            "years":    years,
             "category": categorize(title),
             "dream":    is_dream(company),
         })
@@ -221,6 +263,10 @@ def _neg_date(d: str) -> str:
     return "".join(chr(ord("9") - ord(c) + ord("0")) if c.isdigit() else c for c in d)
 
 
+def years_label(job: dict) -> str:
+    return f"{job['years']}+ yrs" if job.get("years") is not None else "not stated"
+
+
 def build_excel(jobs: list, today: str) -> bytes:
     try:
         import openpyxl
@@ -235,7 +281,7 @@ def build_excel(jobs: list, today: str) -> bytes:
     ws = wb.active
     ws.title = "All Jobs"
 
-    headers = ["#", "Category", "Company", "Role", "Location", "Posted", "Portal", "Apply URL", "Skills"]
+    headers = ["#", "Category", "Company", "Role", "Location", "Posted", "Portal", "Apply URL", "Skills", "Experience"]
     header_fill  = PatternFill("solid", fgColor="1e293b")
     dream_fill   = PatternFill("solid", fgColor="FEF3C7")
     alt_fill     = PatternFill("solid", fgColor="F8FAFC")
@@ -252,7 +298,7 @@ def build_excel(jobs: list, today: str) -> bytes:
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
     ws.row_dimensions[1].height = 28
-    col_widths = [4, 22, 22, 42, 20, 12, 16, 55, 50]
+    col_widths = [4, 22, 22, 42, 20, 12, 16, 55, 50, 14]
     for i, w in enumerate(col_widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
@@ -274,6 +320,7 @@ def build_excel(jobs: list, today: str) -> bytes:
             job["portal"],
             job["url"],
             ", ".join(job["skills"][:8]) if job["skills"] else "",
+            years_label(job),
         ]
         for col, val in enumerate(values, 1):
             cell = ws.cell(row=row, column=col, value=val)
@@ -309,7 +356,7 @@ def build_excel(jobs: list, today: str) -> bytes:
         row = i + 1
         values = [i, job["category"].split(" ", 1)[-1].strip(), job["company"],
                   job["title"], job["location"], job["date"], job["portal"], job["url"],
-                  ", ".join(job["skills"][:8]) if job["skills"] else ""]
+                  ", ".join(job["skills"][:8]) if job["skills"] else "", years_label(job)]
         for col, val in enumerate(values, 1):
             cell = ws2.cell(row=row, column=col, value=val)
             cell.fill = dream_fill
@@ -389,7 +436,7 @@ def build_html(jobs: list, today: str, stats: dict = None) -> str:
     </div>
     <a href="{esc(j['url'])}" style="display:inline-block;padding:4px 14px;background:{C_ACCENT};color:#fff;text-decoration:none;border-radius:4px;font-size:12px;font-weight:600;white-space:nowrap;margin-left:12px">Apply →</a>
   </div>
-  <div style="margin-top:3px;color:{C_MUTED};font-size:12px">{esc(j['location']) or 'Location not listed'} &nbsp;·&nbsp; {date_str} &nbsp;·&nbsp; {esc(j['portal'])}</div>
+  <div style="margin-top:3px;color:{C_MUTED};font-size:12px">{esc(j['location']) or 'Location not listed'} &nbsp;·&nbsp; {date_str} &nbsp;·&nbsp; {esc(j['portal'])} &nbsp;·&nbsp; Exp: {esc(years_label(j))}</div>
   {skills_html}
 </td></tr></table>
 </td></tr>"""
@@ -415,7 +462,8 @@ def build_html(jobs: list, today: str, stats: dict = None) -> str:
     dropped = stats.get("dropped", {})
     already = stats.get("already_seen", 0)
     filter_line = (f"Filtered out: {dropped.get('off-location', 0)} outside India/remote, "
-                   f"{dropped.get('off-role', 0)} non-engineering roles, {already} already sent in earlier digests")
+                   f"{dropped.get('off-role', 0)} non-engineering roles, "
+                   f"{dropped.get('over-experience', 0)} asking {MAX_YEARS}+ years, {already} already sent in earlier digests")
     warnings = stats.get("warnings", [])
     warning_html = ""
     if warnings:
@@ -509,6 +557,7 @@ def write_step_summary(jobs: list, stats: dict, today: str):
         lines.append(f"| {src} | {stats['raw_by_source'].get(src, 0)} | {by_source.get(src, 0)} |")
     d = stats["dropped"]
     lines += ["", f"Dropped: {d['off-location']} off-location, {d['off-role']} off-role, "
+              f"{d['over-experience']} asking {MAX_YEARS}+ years, "
               f"{d['invalid']} invalid, {stats['already_seen']} already sent", ""]
     lines += [f"> **Warning:** {w}" for w in stats["warnings"]]
     with open(path, "a") as f:

@@ -47,6 +47,42 @@ class FilterTests(unittest.TestCase):
         self.assertEqual([j["portal"] for j in out], ["Company ATS", "freehire"])
 
 
+class ExperienceTests(unittest.TestCase):
+    def test_required_years_parsed(self):
+        cases = {
+            "5+ years of experience with Kubernetes": 5,
+            "Experience: 2-4 years in DevOps": 2,
+            "3 to 6 yrs of hands-on AWS work": 3,
+            "Minimum 7 years in infrastructure roles": 7,
+            "at least five years of experience": 5,
+            "3+ years Python. 6+ years overall experience in SRE": 6,
+            "DevOps Engineer (2-4 Yrs)": 2,
+            "We have been building payments for over 20 years.": None,
+            "Founded 10 years ago, we serve 5M users": None,
+            "No experience requirement listed.": None,
+            "": None,
+        }
+        for text, want in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(wd.required_years(text), want)
+
+    def test_over_experience_dropped_unstated_kept(self):
+        stats = {}
+        raw = [
+            dict(job(url="https://e.com/1"), description="Requirements: 2+ years of DevOps experience"),
+            dict(job(url="https://e.com/2"), description="Requirements: 5+ years of DevOps experience"),
+            job("DevOps Engineer (6-9 yrs)", url="https://e.com/3"),
+            job("Staff Platform Engineer", url="https://e.com/4"),
+            job("Platform Engineer", url="https://e.com/5"),
+        ]
+        out = wd.normalize_jobs(raw, stats)
+        self.assertEqual([(j["url"], j["years"]) for j in out],
+                         [("https://e.com/1", 2), ("https://e.com/5", None)])
+        self.assertEqual(stats["dropped"]["over-experience"], 3)
+        self.assertEqual(wd.years_label(out[0]), "2+ yrs")
+        self.assertEqual(wd.years_label(out[1]), "not stated")
+
+
 class CategoryTests(unittest.TestCase):
     def test_spelling_variants_categorised(self):
         cases = {
