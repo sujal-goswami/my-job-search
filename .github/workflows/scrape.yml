@@ -82,16 +82,16 @@ jobs:
       # -- freehire searches --
 
       - name: freehire - DevOps Kubernetes
-        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "devops kubernetes" --country IN --no-description --jobage 7 --limit 25 --format json > /tmp/fh_1.json || echo "[]" > /tmp/fh_1.json
+        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "devops kubernetes" --country IN --description-format text --jobage 7 --limit 25 --format json > /tmp/fh_1.json || echo "[]" > /tmp/fh_1.json
 
       - name: freehire - AI Infrastructure LLM
-        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "ai infrastructure llm platform" --country IN --no-description --jobage 7 --limit 25 --format json > /tmp/fh_2.json || echo "[]" > /tmp/fh_2.json
+        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "ai infrastructure llm platform" --country IN --description-format text --jobage 7 --limit 25 --format json > /tmp/fh_2.json || echo "[]" > /tmp/fh_2.json
 
       - name: freehire - SRE Platform
-        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "site reliability engineer platform" --country IN --no-description --jobage 7 --limit 25 --format json > /tmp/fh_3.json || echo "[]" > /tmp/fh_3.json
+        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "site reliability engineer platform" --country IN --description-format text --jobage 7 --limit 25 --format json > /tmp/fh_3.json || echo "[]" > /tmp/fh_3.json
 
       - name: freehire - MLOps Cloud Native
-        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "mlops cloud native engineer" --country IN --no-description --jobage 7 --limit 20 --format json > /tmp/fh_4.json || echo "[]" > /tmp/fh_4.json
+        run: bun run .agents/skills/freehire-search/cli/src/cli.ts search -q "mlops cloud native engineer" --country IN --description-format text --jobage 7 --limit 20 --format json > /tmp/fh_4.json || echo "[]" > /tmp/fh_4.json
 
       # -- target company career page scraping --
 

@@ -135,6 +135,8 @@ ENV_MAP = (
 )
 
 MAX_FIELD_LEN = 300
+# Long enough to reach a posting's requirements section, where the years ask sits.
+MAX_DESCRIPTION_LEN = 20000
 SAFE_SCHEMES = ("http", "https")
 
 # Python 3.10 is the floor. Say so in one sentence rather than letting an older
@@ -372,6 +374,9 @@ def normalize_job(item, cfg):
         "priority": is_priority(company, cfg),
         "key": canonical_url(url),
     }
+    description = clean_text(item.get("description"), MAX_DESCRIPTION_LEN)
+    if description:
+        job["description"] = description
     # Scoring fields nothing in this pack produces. They survive normalization
     # so a ranked file from your own scoring step - or another tool - can still
     # be rendered by `send_digest.py --mode pipeline`, which needs them.
@@ -433,7 +438,7 @@ def write_json(path, payload):
 
 PROVIDERS = {
     "greenhouse": {
-        "url": "https://boards-api.greenhouse.io/v1/boards/{board}/jobs?content=false",
+        "url": "https://boards-api.greenhouse.io/v1/boards/{board}/jobs?content=true",
         "docs": "Board slug is the path in boards.greenhouse.io/<slug>",
     },
     "lever": {
@@ -480,6 +485,13 @@ def _location(*parts):
     return ", ".join(bits)
 
 
+def plain_text(*parts):
+    """HTML fragments -> one line of text. Greenhouse entity-escapes its HTML, hence two unescapes."""
+    text = html.unescape(" ".join(str(p) for p in parts if p))
+    text = html.unescape(re.sub(r"<[^>]+>", " ", text))
+    return clean_text(text, MAX_DESCRIPTION_LEN)
+
+
 def parse_greenhouse(payload, board):
     for job in (payload or {}).get("jobs") or []:
         yield {
@@ -487,6 +499,7 @@ def parse_greenhouse(payload, board):
             "url": job.get("absolute_url"),
             "location": (job.get("location") or {}).get("name"),
             "date": iso_date(job.get("updated_at") or job.get("first_published")),
+            "description": plain_text(job.get("content")),
         }
 
 
@@ -498,6 +511,11 @@ def parse_lever(payload, board):
             "url": job.get("hostedUrl") or job.get("applyUrl"),
             "location": _location(categories.get("location"), categories.get("team")),
             "date": iso_date(job.get("createdAt")),
+            "description": plain_text(
+                job.get("descriptionPlain"),
+                *(" ".join(filter(None, (lst.get("text"), lst.get("content"))))
+                  for lst in job.get("lists") or [] if isinstance(lst, dict)),
+                job.get("additionalPlain")),
         }
 
 
@@ -508,6 +526,7 @@ def parse_ashby(payload, board):
             "url": job.get("jobUrl") or job.get("applyUrl"),
             "location": job.get("location"),
             "date": iso_date(job.get("publishedAt") or job.get("updatedAt")),
+            "description": plain_text(job.get("descriptionPlain") or job.get("descriptionHtml")),
         }
 
 
@@ -523,6 +542,7 @@ def parse_workable(payload, board):
             "location": _location(location.get("city"), location.get("region"),
                                   location.get("country")),
             "date": iso_date(job.get("published_on") or job.get("created_at")),
+            "description": plain_text(job.get("description"), job.get("requirements")),
         }
 
 
@@ -567,7 +587,7 @@ def fetch_json(url, user_agent, timeout):
         if response.status != 200:
             raise RuntimeError("HTTP %s" % response.status)
         charset = response.headers.get_content_charset() or "utf-8"
-        body = response.read(8_000_000).decode(charset, errors="replace")
+        body = response.read(32_000_000).decode(charset, errors="replace")
     return json.loads(body)
 
 
